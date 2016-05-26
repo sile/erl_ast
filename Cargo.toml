@@ -1,0 +1,8 @@
+[package]
+name = "erl_ast"
+version = "0.1.0"
+authors = ["Takeru Ohta <phjgt308@gmail.com>"]
+
+[dependencies]
+beam_file = "0.2"
+eetf = "0.2"
