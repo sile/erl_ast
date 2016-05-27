@@ -20,6 +20,9 @@ impl Module {
             .find(|c| c.id() == b"Abst")
             .ok_or(BeamParseError::NoDebugInfo));
         let abstract_code = try!(eetf::Term::decode(io::Cursor::new(&chunk.data)));
+        // let _forms = try!(Matcher::pattern(Tuple2(Atom("raw_abstract_v1"), Any))
+        //     .apply(abstract_code.clone())
+        //     .ok_or(BeamParseError::UnknownAbstractCode));
         Ok(Module { code: abstract_code })
     }
 }
