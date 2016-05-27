@@ -6,12 +6,11 @@ use eetf;
 
 use result::BeamParseResult;
 use error::BeamParseError;
+use ast::parser;
 
 #[derive(Debug)]
 pub struct Module {
-    pub code: eetf::Term,
 }
-
 impl Module {
     pub fn from_beam_file<P: AsRef<Path>>(path: P) -> BeamParseResult<Self> {
         let beam = try!(beam_file::RawBeamFile::from_file(path));
@@ -20,10 +19,7 @@ impl Module {
             .find(|c| c.id() == b"Abst")
             .ok_or(BeamParseError::NoDebugInfo));
         let abstract_code = try!(eetf::Term::decode(io::Cursor::new(&chunk.data)));
-        // let _forms = try!(Matcher::pattern(Tuple2(Atom("raw_abstract_v1"), Any))
-        //     .apply(abstract_code.clone())
-        //     .ok_or(BeamParseError::UnknownAbstractCode));
-        Ok(Module { code: abstract_code })
+        parser::raw_abstract_v1::Parser::new().parse(abstract_code)
     }
 }
 
@@ -33,8 +29,6 @@ mod tests {
 
     #[test]
     fn it_works() {
-        let module = Module::from_beam_file("src/testdata/test.beam").unwrap();
-        println!("{}", module.code);
-        assert!(false)
+        let _module = Module::from_beam_file("src/testdata/test.beam").unwrap();
     }
 }
