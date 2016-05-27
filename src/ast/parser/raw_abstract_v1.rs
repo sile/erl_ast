@@ -3,8 +3,8 @@ use eetf;
 use result::BeamParseResult;
 use error::BeamParseError;
 use ast;
-use ast::matcher::Matcher;
-use ast::matcher::Pattern as P;
+use ast::matcher::Pattern;
+use ast::matcher::List;
 
 pub struct Parser {
 }
@@ -13,8 +13,8 @@ impl Parser {
         Parser {}
     }
     pub fn parse(self, abstract_code: eetf::Term) -> BeamParseResult<ast::Module> {
-        let (_, forms) = try!(P::tuple2(P::atom("raw_abstract_v1"), P::any())
-            .do_match(abstract_code)
+        let (_, forms) = try!(("raw_abstract_v1", List)
+            .do_match(&abstract_code)
             .ok_or(BeamParseError::UnknownAbstractFormat));
         unimplemented!();
     }

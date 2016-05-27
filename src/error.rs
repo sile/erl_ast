@@ -11,6 +11,7 @@ pub enum BeamParseError {
     BeamFile(beam_file::Error),
     TermDecode(eetf::DecodeError),
     NoDebugInfo,
+    UnknownAbstractFormat,
 }
 impl error::Error for BeamParseError {
     fn description(&self) -> &str {
@@ -19,6 +20,7 @@ impl error::Error for BeamParseError {
             BeamParseError::BeamFile(ref x) => x.description(),
             BeamParseError::TermDecode(ref x) => x.description(),
             BeamParseError::NoDebugInfo => "No debug information",
+            BeamParseError::UnknownAbstractFormat => "Unknown abstract format",
         }
     }
     fn cause(&self) -> Option<&error::Error> {
@@ -37,6 +39,7 @@ impl fmt::Display for BeamParseError {
             BeamParseError::BeamFile(ref x) => x.fmt(f),
             BeamParseError::TermDecode(ref x) => x.fmt(f),
             BeamParseError::NoDebugInfo => write!(f, "The beam has no debug information"),
+            BeamParseError::UnknownAbstractFormat => write!(f, "Unknown abstract format"),
         }
     }
 }
