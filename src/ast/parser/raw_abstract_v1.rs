@@ -3,7 +3,7 @@ use eetf;
 use result::BeamParseResult;
 use error::BeamParseError;
 use ast;
-use ast::{Node, Export, Spec, Callback, Type, FunType, UnionType};
+use ast::{Node, Export, Import, Spec, Callback, Type, FunType, UnionType};
 use ast::{TupleType, Variable, AnnotatedType, BuiltInType, UserType};
 use ast::TypeDef;
 use ast::matcher::Pattern;
@@ -18,6 +18,7 @@ pub struct Parser {
     behaviours: Vec<Node<String>>,
     exports: Vec<Node<Export>>,
     export_types: Vec<Node<Export>>,
+    imports: Vec<Node<Import>>,
     specs: Vec<Node<Spec>>,
     callbacks: Vec<Node<Callback>>,
     types: Vec<Node<TypeDef>>,
@@ -61,6 +62,16 @@ impl Parser {
             .do_match(t) {
             let behaviour = try!(self.node(line, name.to_string()));
             self.behaviours.push(behaviour);
+            return Ok(());
+        }
+        if let Some((_, line, _, (module, functions))) = {
+                ("attribute", U32, "import", (Atom, List((Atom, U32))))
+            }
+            .do_match(t) {
+            for (name, arity) in functions {
+                let i = try!(self.node(line, Import::new(module, name, arity)));
+                self.imports.push(i);
+            }
             return Ok(());
         }
         if let Some((_, line, _, exports)) = ("attribute", U32, "export", List((Atom, U32)))

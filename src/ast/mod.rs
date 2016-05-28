@@ -50,6 +50,22 @@ impl Export {
 }
 
 #[derive(Debug)]
+pub struct Import {
+    pub module: String,
+    pub function: String,
+    pub arity: u32,
+}
+impl Import {
+    pub fn new(module: &str, function: &str, arity: u32) -> Self {
+        Import {
+            module: module.to_string(),
+            function: function.to_string(),
+            arity: arity,
+        }
+    }
+}
+
+#[derive(Debug)]
 pub struct Spec {
     pub module: Option<String>, // `None` means "current module"
     pub name: String,

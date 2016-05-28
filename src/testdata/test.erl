@@ -17,6 +17,8 @@
 -export_type([my_list/1]).
 -export_type([my_cons/2]).
 
+-import(lists, [usort/1]).
+
 -callback hello(Name :: binary()) -> ok | {error, Reason :: term()}.
 
 -opaque my_list(E) :: my_cons(E, my_list(E)) | nil.
