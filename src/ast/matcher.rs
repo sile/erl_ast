@@ -14,18 +14,35 @@ macro_rules! try_match {
     )
 }
 
-pub struct Or<'a, P: 'static>(pub &'a [P]);
-impl<'a, P> Pattern<'a> for Or<'a, P>
-    where P: Pattern<'a>
+// pub struct Or<'a, P: 'static>(pub &'a [P]);
+// impl<'a, P> Pattern<'a> for Or<'a, P>
+//     where P: Pattern<'a>
+// {
+//     type Value = P::Value;
+//     fn do_match(&self, term: &'a eetf::Term) -> Option<Self::Value> {
+//         for p in self.0 {
+//             if let Some(v) = p.do_match(term) {
+//                 return Some(v);
+//             }
+//         }
+//         None
+//     }
+// }
+
+pub struct Either<L, R>(pub L, pub R);
+impl<'a, L, R> Pattern<'a> for Either<L, R>
+    where L: Pattern<'a>,
+          R: Pattern<'a>
 {
-    type Value = P::Value;
+    type Value = Result<L::Value, R::Value>;
     fn do_match(&self, term: &'a eetf::Term) -> Option<Self::Value> {
-        for p in self.0 {
-            if let Some(v) = p.do_match(term) {
-                return Some(v);
-            }
+        if let Some(v) = self.0.do_match(term) {
+            Some(Ok(v))
+        } else if let Some(v) = self.1.do_match(term) {
+            Some(Err(v))
+        } else {
+            None
         }
-        None
     }
 }
 
@@ -97,6 +114,20 @@ impl<'a, P0, P1, P2, P3, P4> Pattern<'a> for (P0, P1, P2, P3, P4)
     }
 }
 
+pub struct List1<P0>(pub P0);
+impl<'a, P0> Pattern<'a> for List1<P0>
+    where P0: Pattern<'a>
+{
+    type Value = P0::Value;
+    fn do_match(&self, term: &'a eetf::Term) -> Option<Self::Value> {
+        term.as_list().and_then(|l| if l.elements.len() == 1 {
+            Some(try_match!(self.0, &l.elements[0]))
+        } else {
+            None
+        })
+    }
+}
+
 pub struct List2<P0, P1>(pub P0, pub P1);
 impl<'a, P0, P1> Pattern<'a> for List2<P0, P1>
     where P0: Pattern<'a>,
@@ -106,6 +137,21 @@ impl<'a, P0, P1> Pattern<'a> for List2<P0, P1>
     fn do_match(&self, term: &'a eetf::Term) -> Option<Self::Value> {
         term.as_list().and_then(|l| if l.elements.len() == 2 {
             Some((try_match!(self.0, &l.elements[0]), try_match!(self.1, &l.elements[1])))
+        } else {
+            None
+        })
+    }
+}
+
+pub struct Cons<P0>(pub P0);
+impl<'a, P0> Pattern<'a> for Cons<P0>
+    where P0: Pattern<'a>
+{
+    type Value = (P0::Value, &'a [eetf::Term]);
+    fn do_match(&self, term: &'a eetf::Term) -> Option<Self::Value> {
+        term.as_list().and_then(|l| if !l.elements.is_empty() {
+            let head = &l.elements[0];
+            Some((try_match!(self.0, head), &l.elements[1..]))
         } else {
             None
         })
@@ -143,7 +189,7 @@ impl<'a> Pattern<'a> for AnyList {
     }
 }
 
-pub struct List<P: 'static>(pub P);
+pub struct List<P>(pub P);
 impl<'a, P> Pattern<'a> for List<P>
     where P: Pattern<'a>
 {
@@ -191,6 +237,14 @@ impl<'a> Pattern<'a> for U32 {
         } else {
             None
         })
+    }
+}
+
+pub struct I64;
+impl<'a> Pattern<'a> for I64 {
+    type Value = i64;
+    fn do_match(&self, term: &'a eetf::Term) -> Option<Self::Value> {
+        term.as_fix_integer().map(|i| i.value as Self::Value)
     }
 }
 

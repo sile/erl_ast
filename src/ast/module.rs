@@ -7,9 +7,24 @@ use eetf;
 use result::BeamParseResult;
 use error::BeamParseError;
 use ast::parser;
+use ast::Node;
+use ast::{Export, Import, Spec, Callback, TypeDef, RecordDecl, FunctionDecl};
 
 #[derive(Debug)]
 pub struct Module {
+    pub name: Node<String>,
+    pub compile_options: Vec<Node<eetf::Term>>,
+    pub behaviours: Vec<Node<String>>,
+    pub exports: Vec<Node<Export>>,
+    pub export_types: Vec<Node<Export>>,
+    pub imports: Vec<Node<Import>>,
+    pub specs: Vec<Node<Spec>>,
+    pub callbacks: Vec<Node<Callback>>,
+    pub types: Vec<Node<TypeDef>>,
+    pub record_types: Vec<Node<TypeDef>>,
+    pub records: Vec<Node<RecordDecl>>,
+    pub functions: Vec<Node<FunctionDecl>>,
+    pub user_attributes: Vec<Node<(String, eetf::Term)>>,
 }
 impl Module {
     pub fn from_beam_file<P: AsRef<Path>>(path: P) -> BeamParseResult<Self> {
