@@ -194,6 +194,14 @@ impl<'a> Pattern<'a> for U32 {
     }
 }
 
+pub struct F64;
+impl<'a> Pattern<'a> for F64 {
+    type Value = f64;
+    fn do_match(&self, term: &'a eetf::Term) -> Option<Self::Value> {
+        term.as_float().map(|f| f.value)
+    }
+}
+
 pub struct Atom;
 impl<'a> Pattern<'a> for Atom {
     type Value = &'a str;

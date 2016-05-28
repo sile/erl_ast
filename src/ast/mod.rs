@@ -195,27 +195,92 @@ pub struct UserType {
 }
 
 #[derive(Debug)]
-pub struct TypeDef {
-    pub is_public: bool,
-    pub name: String,
-    pub variables: Vec<Variable>,
-    pub value: Type,
+pub enum TypeDef {
+    Type {
+        name: String,
+        variables: Vec<Variable>,
+        value: Type,
+    },
+    Opaque {
+        name: String,
+        variables: Vec<Variable>,
+        value: Type,
+    },
+    Record {
+        name: String,
+        variables: Vec<Variable>,
+        fields: Vec<Node<RecordField>>,
+    },
 }
 impl TypeDef {
     pub fn new_type(name: &str, variables: Vec<Variable>, value: Type) -> Self {
-        TypeDef {
-            is_public: true,
+        TypeDef::Type {
             name: name.to_string(),
             variables: variables,
             value: value,
         }
     }
     pub fn new_opaque(name: &str, variables: Vec<Variable>, value: Type) -> Self {
-        TypeDef {
-            is_public: false,
+        TypeDef::Opaque {
             name: name.to_string(),
             variables: variables,
             value: value,
         }
     }
+    pub fn new_record(name: &str,
+                      variables: Vec<Variable>,
+                      fields: Vec<Node<RecordField>>)
+                      -> Self {
+        TypeDef::Record {
+            name: name.to_string(),
+            variables: variables,
+            fields: fields,
+        }
+    }
+}
+
+#[derive(Debug)]
+pub struct RecordDecl {
+    pub name: String,
+    pub fields: Vec<Node<RecordField>>,
+}
+impl RecordDecl {
+    pub fn new(name: &str, fields: Vec<Node<RecordField>>) -> Self {
+        RecordDecl {
+            name: name.to_string(),
+            fields: fields,
+        }
+    }
+}
+
+#[derive(Debug)]
+pub struct RecordField {
+    pub name: String,
+    pub field_type: Option<Type>,
+    pub default_value: Option<Expression>,
+}
+impl RecordField {
+    pub fn new(name: &str) -> Self {
+        RecordField {
+            name: name.to_string(),
+            field_type: None,
+            default_value: None,
+        }
+    }
+    pub fn default(mut self, value: Expression) -> Self {
+        self.default_value = Some(value);
+        self
+    }
+    pub fn field_type(mut self, typ: Type) -> Self {
+        self.field_type = Some(typ);
+        self
+    }
+}
+
+#[derive(Debug)]
+pub enum Expression {
+    IntegerLiteral(Node<u32>),
+    AtomLiteral(Node<String>),
+    FloatLiteral(Node<f64>),
+    StringLiteral(Node<String>),
 }

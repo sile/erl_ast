@@ -5,10 +5,11 @@ use error::BeamParseError;
 use ast;
 use ast::{Node, Export, Import, Spec, Callback, Type, FunType, UnionType};
 use ast::{TupleType, Variable, AnnotatedType, BuiltInType, UserType};
-use ast::TypeDef;
+use ast::{TypeDef, RecordDecl, RecordField};
+use ast::Expression;
 use ast::matcher::Pattern;
 use ast::matcher::Or;
-use ast::matcher::{U32, Atom, Str, List, List2, AnyList, Term, Nil};
+use ast::matcher::{U32, F64, Atom, Str, List, List2, AnyList, Term, Nil};
 
 #[derive(Default)]
 pub struct Parser {
@@ -22,6 +23,8 @@ pub struct Parser {
     specs: Vec<Node<Spec>>,
     callbacks: Vec<Node<Callback>>,
     types: Vec<Node<TypeDef>>,
+    record_types: Vec<Node<TypeDef>>,
+    records: Vec<Node<RecordDecl>>,
 }
 impl Parser {
     pub fn new() -> Self {
@@ -148,8 +151,76 @@ impl Parser {
             self.types.push(def);
             return Ok(());
         }
+        if let Some((_, line, _, (name, fields))) = ("attribute", U32, "record", (Atom, AnyList))
+            .do_match(t) {
+            let mut r = RecordDecl::new(name, Vec::with_capacity(fields.len()));
+            for f in fields {
+                r.fields.push(try!(self.parse_record_field(f)));
+            }
+            let r = try!(self.node(line, r));
+            self.records.push(r);
+            return Ok(());
+        }
+        if let Some((_, line, _, ((_, name), fields, variables))) = {
+                ("attribute", U32, "type", (("record", Atom), AnyList, List(("var", U32, Atom))))
+            }
+            .do_match(t) {
+            let mut fs = Vec::with_capacity(fields.len());
+            for f in fields {
+                fs.push(try!(self.parse_record_field(f)));
+            }
+            let variables = variables.iter().map(|&(_, _, n)| Variable::new(n)).collect();
+            let r = try!(self.node(line, TypeDef::new_record(name, variables, fs)));
+            self.record_types.push(r);
+            return Ok(());
+        }
         println!("  -- {}", t);
         Ok(())
+    }
+    fn parse_record_field(&mut self, t: &eetf::Term) -> BeamParseResult<Node<RecordField>> {
+        if let Some((_, line, (_, _, name))) = ("record_field", U32, ("atom", U32, Atom))
+            .do_match(t) {
+            return Ok(try!(self.node(line, RecordField::new(name))));
+        }
+        if let Some((_, line, (_, _, name), default)) = {
+                ("record_field", U32, ("atom", U32, Atom), Term)
+            }
+            .do_match(t) {
+            let default = try!(self.parse_expression(default));
+            return Ok(try!(self.node(line, RecordField::new(name).default(default))));
+        }
+        if let Some((_, (_, line, (_, _, name)), typ)) = {
+                ("typed_record_field", ("record_field", U32, ("atom", U32, Atom)), Term)
+            }
+            .do_match(t) {
+            let typ = try!(self.parse_type(typ));
+            return Ok(try!(self.node(line, RecordField::new(name).field_type(typ))));
+        }
+        if let Some((_, (_, line, (_, _, name), default), typ)) = {
+                ("typed_record_field", ("record_field", U32, ("atom", U32, Atom), Term), Term)
+            }
+            .do_match(t) {
+            let default = try!(self.parse_expression(default));
+            let typ = try!(self.parse_type(typ));
+            return Ok(try!(self.node(line,
+                                     RecordField::new(name).default(default).field_type(typ))));
+        }
+        Err(BeamParseError::UnexpectedTerm(t.clone()))
+    }
+    fn parse_expression(&mut self, t: &eetf::Term) -> BeamParseResult<Expression> {
+        if let Some((_, line, i)) = ("integer", U32, U32).do_match(t) {
+            return Ok(Expression::IntegerLiteral(try!(self.node(line, i))));
+        }
+        if let Some((_, line, f)) = ("float", U32, F64).do_match(t) {
+            return Ok(Expression::FloatLiteral(try!(self.node(line, f))));
+        }
+        if let Some((_, line, a)) = ("atom", U32, Atom).do_match(t) {
+            return Ok(Expression::AtomLiteral(try!(self.node(line, a.to_string()))));
+        }
+        if let Some((_, line, s)) = ("string", U32, Str).do_match(t) {
+            return Ok(Expression::StringLiteral(try!(self.node(line, s))));
+        }
+        panic!("TODO: {}", t);
     }
     fn parse_type(&mut self, t: &eetf::Term) -> BeamParseResult<Type> {
         if let Some((_, line, name)) = ("atom", U32, Atom).do_match(t) {

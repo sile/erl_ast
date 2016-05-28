@@ -71,7 +71,7 @@ cons(H, T) ->
 to_my_list([])      -> nil;
 to_my_list([H | T]) -> cons(H, to_my_list(T)).
 
--spec my_record() -> #my_record{}.
+-spec my_record() -> #my_record{c :: pid()}.
 my_record() ->
     #my_record{
        c = self()
