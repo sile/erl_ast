@@ -22,6 +22,8 @@
 -opaque my_list(E) :: my_cons(E, my_list(E)) | nil.
 -type my_cons(H, T) :: {H, T}.
 
+-spec foo:bar(_) -> baz.
+
 -record(my_record,
         {
           a,
@@ -73,8 +75,13 @@ my_record() ->
        c = self()
       }.
 
--spec guard(term()) -> term().
+-spec guard(integer() | atom()) -> integer() | atom();
+           (1..99) -> float();
+           (map()) -> term();
+           ({term(), map(), binary()}) -> binary();
+           (tuple()) -> non_neg_integer().
 guard(X) when is_integer(X); is_atom(X) -> X;
-guard(X) when is_integer(X), X > 0 -> 10 / X;
+guard(X) when is_integer(X), 0 < X, X < 100 -> 10 / X;
 guard(#{hello := X}) when is_atom(X) orelse (is_integer(X) andalso X < 0)-> X;
-guard({_, #{}, <<10, Bin/binary>>}) ->  Bin.
+guard({_, #{}, <<10, Bin/binary>>}) ->  Bin;
+guard(X) when is_tuple(X) -> tuple_size(X).

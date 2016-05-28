@@ -7,6 +7,7 @@ mod parser;
 
 pub use self::module::Module;
 
+#[derive(Debug)]
 pub struct Node<T> {
     value: T,
     file: Rc<String>,
@@ -34,6 +35,7 @@ impl<T> Deref for Node<T> {
     }
 }
 
+#[derive(Debug)]
 pub struct Export {
     pub function: String,
     pub arity: u32,
@@ -45,4 +47,119 @@ impl Export {
             arity: arity,
         }
     }
+}
+
+#[derive(Debug)]
+pub struct Spec {
+    pub name: String,
+    pub arity: u32,
+    pub clauses: Vec<Node<FunType>>,
+}
+impl Spec {
+    pub fn new(name: String, arity: u32, clauses: Vec<Node<FunType>>) -> Self {
+        Spec {
+            name: name,
+            arity: arity,
+            clauses: clauses,
+        }
+    }
+}
+
+#[derive(Debug)]
+pub struct Callback {
+    pub name: String,
+    pub arity: u32,
+    pub clauses: Vec<Node<FunType>>,
+}
+impl Callback {
+    pub fn new(name: String, arity: u32, clauses: Vec<Node<FunType>>) -> Self {
+        Callback {
+            name: name,
+            arity: arity,
+            clauses: clauses,
+        }
+    }
+}
+
+#[derive(Debug)]
+pub enum Type {
+    BuiltIn(Node<BuiltInType>),
+    AtomLiteral(Node<String>),
+    Tuple(Node<TupleType>),
+    Fun(Node<FunType>),
+    Union(Node<UnionType>),
+    Annotated(Node<AnnotatedType>),
+}
+
+#[derive(Debug)]
+pub struct FunType {
+    pub args: Vec<Type>,
+    pub result: Box<Type>,
+}
+impl FunType {
+    pub fn new(args: Vec<Type>, result: Type) -> Self {
+        FunType {
+            args: args,
+            result: Box::new(result),
+        }
+    }
+}
+
+#[derive(Debug)]
+pub struct UnionType {
+    pub types: Vec<Type>,
+}
+impl UnionType {
+    fn new(types: Vec<Type>) -> Self {
+        UnionType { types: types }
+    }
+}
+
+#[derive(Debug)]
+pub struct TupleType {
+    elements: Vec<Type>,
+}
+
+#[derive(Debug)]
+pub struct AnnotatedType {
+    pub variable: Variable,
+    pub ann_type: Box<Type>,
+}
+impl AnnotatedType {
+    pub fn new(variable: &str, ann_type: Type) -> Self {
+        AnnotatedType {
+            variable: Variable::new(variable),
+            ann_type: Box::new(ann_type),
+        }
+    }
+}
+
+#[derive(Debug)]
+pub struct Variable {
+    // `None` means an anonymous variable
+    pub name: Option<String>,
+}
+impl Variable {
+    fn new(name: &str) -> Self {
+        match name {
+            "_" => Variable { name: None },
+            _ => Variable { name: Some(name.to_string()) },
+        }
+    }
+}
+
+#[derive(Debug)]
+pub enum BuiltInType {
+    Term,
+    Atom,
+    Binary,
+    Integer,
+    NegInteger,
+    Float,
+    List,
+    BitString,
+    Map,
+    Tuple,
+    Pid,
+    Reference,
 }

@@ -97,6 +97,33 @@ impl<'a, P0, P1, P2, P3, P4> Pattern<'a> for (P0, P1, P2, P3, P4)
     }
 }
 
+pub struct List2<P0, P1>(pub P0, pub P1);
+impl<'a, P0, P1> Pattern<'a> for List2<P0, P1>
+    where P0: Pattern<'a>,
+          P1: Pattern<'a>
+{
+    type Value = (P0::Value, P1::Value);
+    fn do_match(&self, term: &'a eetf::Term) -> Option<Self::Value> {
+        term.as_list().and_then(|l| if l.elements.len() == 2 {
+            Some((try_match!(self.0, &l.elements[0]), try_match!(self.1, &l.elements[1])))
+        } else {
+            None
+        })
+    }
+}
+
+pub struct Nil;
+impl<'a> Pattern<'a> for Nil {
+    type Value = &'a [eetf::Term];
+    fn do_match(&self, term: &'a eetf::Term) -> Option<Self::Value> {
+        term.as_list().and_then(|l| if l.elements.is_empty() {
+            Some(&l.elements[..])
+        } else {
+            None
+        })
+    }
+}
+
 impl<'a> Pattern<'a> for &'static str {
     type Value = &'a eetf::Atom;
     fn do_match(&self, term: &'a eetf::Term) -> Option<Self::Value> {
@@ -110,9 +137,9 @@ impl<'a> Pattern<'a> for &'static str {
 
 pub struct AnyList;
 impl<'a> Pattern<'a> for AnyList {
-    type Value = &'a eetf::List;
+    type Value = &'a [eetf::Term];
     fn do_match(&self, term: &'a eetf::Term) -> Option<Self::Value> {
-        term.as_list()
+        term.as_list().map(|l| &l.elements[..])
     }
 }
 
@@ -169,9 +196,9 @@ impl<'a> Pattern<'a> for U32 {
 
 pub struct Atom;
 impl<'a> Pattern<'a> for Atom {
-    type Value = &'a eetf::Atom;
+    type Value = &'a str;
     fn do_match(&self, term: &'a eetf::Term) -> Option<Self::Value> {
-        term.as_atom()
+        term.as_atom().map(|a| a.name.as_str())
     }
 }
 

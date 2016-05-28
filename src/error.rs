@@ -14,6 +14,7 @@ pub enum BeamParseError {
     UnknownAbstractFormat,
     NoFileAttribute,
     NoModuleAttribute,
+    UnexpectedTerm(eetf::Term),
 }
 impl error::Error for BeamParseError {
     fn description(&self) -> &str {
@@ -25,6 +26,7 @@ impl error::Error for BeamParseError {
             BeamParseError::UnknownAbstractFormat => "Unknown abstract format",
             BeamParseError::NoFileAttribute => "No file attribute",
             BeamParseError::NoModuleAttribute => "No module attribute",
+            BeamParseError::UnexpectedTerm(_) => "Unexpected term",
         }
     }
     fn cause(&self) -> Option<&error::Error> {
@@ -46,6 +48,7 @@ impl fmt::Display for BeamParseError {
             BeamParseError::UnknownAbstractFormat => write!(f, "Unknown abstract format"),
             BeamParseError::NoFileAttribute => write!(f, "No file attribute"),
             BeamParseError::NoModuleAttribute => write!(f, "No module attribute"),
+            BeamParseError::UnexpectedTerm(ref t) => write!(f, "Unexpected term: {}", t),
         }
     }
 }
