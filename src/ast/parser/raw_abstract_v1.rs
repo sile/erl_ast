@@ -105,6 +105,23 @@ impl Parser {
             }
             return Ok(());
         }
+        if let Some((_, line, _, ((module, name, arity), ftypes))) = {
+                ("attribute", U32, "spec", ((Atom, Atom, U32), AnyList))
+            }
+            .do_match(t) {
+            let mut types = Vec::with_capacity(ftypes.len());
+            for f in ftypes {
+                types.push(try!(self.parse_type(&f).and_then(|t| if let Type::Fun(t) = t {
+                    Ok(t)
+                } else {
+                    Err(BeamParseError::UnexpectedTerm(f.clone()))
+                })));
+            }
+            let spec = try!(self.node(line,
+                                      Spec::new(name.to_string(), arity, types).module(module)));
+            self.specs.push(spec);
+            return Ok(());
+        }
         if let Some((_, line, kind, (name, typ, variables))) = {
                 ("attribute", U32, Or(&["type", "opaque"]), (Atom, Term, List(("var", U32, Atom))))
             }

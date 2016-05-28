@@ -51,6 +51,7 @@ impl Export {
 
 #[derive(Debug)]
 pub struct Spec {
+    pub module: Option<String>, // `None` means "current module"
     pub name: String,
     pub arity: u32,
     pub clauses: Vec<Node<FunType>>,
@@ -58,10 +59,15 @@ pub struct Spec {
 impl Spec {
     pub fn new(name: String, arity: u32, clauses: Vec<Node<FunType>>) -> Self {
         Spec {
+            module: None,
             name: name,
             arity: arity,
             clauses: clauses,
         }
+    }
+    pub fn module(mut self, module: &str) -> Self {
+        self.module = Some(module.to_string());
+        self
     }
 }
 
