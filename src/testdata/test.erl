@@ -1,7 +1,10 @@
 -module(test).
 
 -compile(debug_info).
+-foo_attribute(bar). % An original attribute
+
 -behaviour(test).
+-behavior(test2).
 
 -export([literals/0]).
 -export([hello/1]).

@@ -12,6 +12,8 @@ pub enum BeamParseError {
     TermDecode(eetf::DecodeError),
     NoDebugInfo,
     UnknownAbstractFormat,
+    NoFileAttribute,
+    NoModuleAttribute,
 }
 impl error::Error for BeamParseError {
     fn description(&self) -> &str {
@@ -21,6 +23,8 @@ impl error::Error for BeamParseError {
             BeamParseError::TermDecode(ref x) => x.description(),
             BeamParseError::NoDebugInfo => "No debug information",
             BeamParseError::UnknownAbstractFormat => "Unknown abstract format",
+            BeamParseError::NoFileAttribute => "No file attribute",
+            BeamParseError::NoModuleAttribute => "No module attribute",
         }
     }
     fn cause(&self) -> Option<&error::Error> {
@@ -40,6 +44,8 @@ impl fmt::Display for BeamParseError {
             BeamParseError::TermDecode(ref x) => x.fmt(f),
             BeamParseError::NoDebugInfo => write!(f, "The beam has no debug information"),
             BeamParseError::UnknownAbstractFormat => write!(f, "Unknown abstract format"),
+            BeamParseError::NoFileAttribute => write!(f, "No file attribute"),
+            BeamParseError::NoModuleAttribute => write!(f, "No module attribute"),
         }
     }
 }
