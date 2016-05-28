@@ -84,11 +84,13 @@ impl Callback {
 #[derive(Debug)]
 pub enum Type {
     BuiltIn(Node<BuiltInType>),
+    User(Node<UserType>),
     AtomLiteral(Node<String>),
     Tuple(Node<TupleType>),
     Fun(Node<FunType>),
     Union(Node<UnionType>),
     Annotated(Node<AnnotatedType>),
+    Var(Node<Variable>),
 }
 
 #[derive(Debug)]
@@ -162,4 +164,36 @@ pub enum BuiltInType {
     Tuple,
     Pid,
     Reference,
+}
+
+#[derive(Debug)]
+pub struct UserType {
+    pub name: String,
+    pub args: Vec<Type>,
+}
+
+#[derive(Debug)]
+pub struct TypeDef {
+    pub is_public: bool,
+    pub name: String,
+    pub variables: Vec<Variable>,
+    pub value: Type,
+}
+impl TypeDef {
+    pub fn new_type(name: &str, variables: Vec<Variable>, value: Type) -> Self {
+        TypeDef {
+            is_public: true,
+            name: name.to_string(),
+            variables: variables,
+            value: value,
+        }
+    }
+    pub fn new_opaque(name: &str, variables: Vec<Variable>, value: Type) -> Self {
+        TypeDef {
+            is_public: false,
+            name: name.to_string(),
+            variables: variables,
+            value: value,
+        }
+    }
 }

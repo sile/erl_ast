@@ -125,10 +125,10 @@ impl<'a> Pattern<'a> for Nil {
 }
 
 impl<'a> Pattern<'a> for &'static str {
-    type Value = &'a eetf::Atom;
+    type Value = &'static str;
     fn do_match(&self, term: &'a eetf::Term) -> Option<Self::Value> {
         term.as_atom().and_then(|a| if a.name == *self {
-            Some(a)
+            Some(*self)
         } else {
             None
         })

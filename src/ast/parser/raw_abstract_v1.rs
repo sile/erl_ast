@@ -4,7 +4,8 @@ use result::BeamParseResult;
 use error::BeamParseError;
 use ast;
 use ast::{Node, Export, Spec, Callback, Type, FunType, UnionType};
-use ast::{TupleType, Variable, AnnotatedType, BuiltInType};
+use ast::{TupleType, Variable, AnnotatedType, BuiltInType, UserType};
+use ast::TypeDef;
 use ast::matcher::Pattern;
 use ast::matcher::Or;
 use ast::matcher::{U32, Atom, Str, List, List2, AnyList, Term, Nil};
@@ -19,6 +20,7 @@ pub struct Parser {
     export_types: Vec<Node<Export>>,
     specs: Vec<Node<Spec>>,
     callbacks: Vec<Node<Callback>>,
+    types: Vec<Node<TypeDef>>,
 }
 impl Parser {
     pub fn new() -> Self {
@@ -77,10 +79,9 @@ impl Parser {
             }
             return Ok(());
         }
-        if let Some((_, line, kind, ((name, arity), ftypes))) = ("attribute",
-                                                                 U32,
-                                                                 Or(&["spec", "callback"]),
-                                                                 ((Atom, U32), AnyList))
+        if let Some((_, line, kind, ((name, arity), ftypes))) = {
+                ("attribute", U32, Or(&["spec", "callback"]), ((Atom, U32), AnyList))
+            }
             .do_match(t) {
             let mut types = Vec::with_capacity(ftypes.len());
             for f in ftypes {
@@ -90,7 +91,7 @@ impl Parser {
                     Err(BeamParseError::UnexpectedTerm(f.clone()))
                 })));
             }
-            match kind.name.as_str() {
+            match kind {
                 "spec" => {
                     let spec = try!(self.node(line, Spec::new(name.to_string(), arity, types)));
                     self.specs.push(spec);
@@ -104,6 +105,21 @@ impl Parser {
             }
             return Ok(());
         }
+        if let Some((_, line, kind, (name, typ, variables))) = {
+                ("attribute", U32, Or(&["type", "opaque"]), (Atom, Term, List(("var", U32, Atom))))
+            }
+            .do_match(t) {
+            let typ = try!(self.parse_type(typ));
+            let variables = variables.iter().map(|&(_, _, n)| Variable::new(n)).collect();
+            let def = match kind {
+                "type" => TypeDef::new_type(name, variables, typ),
+                "opaque" => TypeDef::new_opaque(name, variables, typ),
+                _ => unreachable!(),
+            };
+            let def = try!(self.node(line, def));
+            self.types.push(def);
+            return Ok(());
+        }
         println!("  -- {}", t);
         Ok(())
     }
@@ -111,21 +127,16 @@ impl Parser {
         if let Some((_, line, name)) = ("atom", U32, Atom).do_match(t) {
             return Ok(Type::AtomLiteral(try!(self.node(line, name.to_string()))));
         }
-        if let Some((_, line, ((_, _, name), ann_type))) = ("ann_type",
-                                                            U32,
-                                                            List2(("var", U32, Atom), Term))
+        if let Some((_, line, ((_, _, name), ann_type))) = {
+                ("ann_type", U32, List2(("var", U32, Atom), Term))
+            }
             .do_match(t) {
             let ann_type = try!(self.parse_type(ann_type));
             return Ok(Type::Annotated(try!(self.node(line, AnnotatedType::new(name, ann_type)))));
         }
-        if let Some((_, line, _, ((_, _, _, args), result))) = ("type",
-                                                                U32,
-                                                                "fun",
-                                                                List2(("type",
-                                                                       U32,
-                                                                       "product",
-                                                                       AnyList),
-                                                                      Term))
+        if let Some((_, line, _, ((_, _, _, args), result))) = {
+                ("type", U32, "fun", List2(("type", U32, "product", AnyList), Term))
+            }
             .do_match(t) {
             let mut f = FunType::new(Vec::new(), try!(self.parse_type(result)));
             for a in args {
@@ -153,6 +164,16 @@ impl Parser {
         if let Some((_, line, _, _)) = ("type", U32, "map", "any").do_match(t) {
             return Ok(Type::BuiltIn(try!(self.node(line, BuiltInType::Map))));
         }
+        if let Some((_, line, name, args)) = ("user_type", U32, Atom, AnyList).do_match(t) {
+            let mut user = UserType {
+                name: name.to_string(),
+                args: Vec::with_capacity(args.len()),
+            };
+            for a in args {
+                user.args.push(try!(self.parse_type(a)));
+            }
+            return Ok(Type::User(try!(self.node(line, user))));
+        }
         if let Some((_, line, name, _)) = ("type", U32, Atom, Nil).do_match(t) {
             let builtin_type = match name {
                 "term" => BuiltInType::Term,
@@ -168,6 +189,9 @@ impl Parser {
                 _ => panic!("TYPE: {}", t),
             };
             return Ok(Type::BuiltIn(try!(self.node(line, builtin_type))));
+        }
+        if let Some((_, line, name)) = ("var", U32, Atom).do_match(t) {
+            return Ok(Type::Var(try!(self.node(line, Variable::new(name)))));
         }
         println!(" TYPE: {}", t);
         unimplemented!()
