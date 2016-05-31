@@ -4,7 +4,7 @@ use std::ops::DerefMut;
 use std::ops::Range;
 
 mod module;
-mod matcher;
+pub mod matcher;
 mod parser;
 
 pub use self::module::Module;

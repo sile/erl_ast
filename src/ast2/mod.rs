@@ -1,5 +1,11 @@
 use eetf;
 
+pub mod codec;
+
+use std::path::Path;
+use std::convert::From;
+use result::BeamParseResult;
+
 macro_rules! impl_node {
     ($x:ty) => {
         impl Node for $x {
@@ -38,19 +44,52 @@ pub trait Node {
 // 6.1 Module Declarations and Forms
 #[derive(Debug)]
 pub struct ModuleDecl {
-    pub module: ModuleAttr,
-    pub behaviours: Vec<BehaviourAttr>,
-    pub exports: Vec<ExportAttr>,
-    pub imports: Vec<ImportAttr>,
-    pub export_types: Vec<ExportTypeAttr>,
-    pub compiles: Vec<CompileOptionsAttr>,
-    pub files: Vec<FileAttr>,
-    pub records: Vec<RecordDecl>,
-    pub types: Vec<TypeDecl>,
-    pub specs: Vec<FunctionSpec>,
-    pub attrs: Vec<WildAttr>,
-    pub functions: Vec<FunctionDecl>,
+    pub forms: Vec<Form>,
 }
+impl ModuleDecl {
+    pub fn from_beam_file<P: AsRef<Path>>(path: P) -> BeamParseResult<Self> {
+        let code = try!(self::codec::raw_abstract_v1::AbstractCode::from_beam_file(path));
+        code.to_module_decl()
+    }
+}
+
+macro_rules! impl_from {
+    ($to:ident :: $constructor:ident ($from:ident)) => {
+        impl From<$from> for $to {
+            fn from(x: $from) -> Self {
+                $to::$constructor(x)
+            }
+        }
+    }
+}
+
+#[derive(Debug)]
+pub enum Form {
+    Module(ModuleAttr),
+    Behaviour(BehaviourAttr),
+    Export(ExportAttr),
+    Import(ImportAttr),
+    ExportType(ExportTypeAttr),
+    Compile(CompileOptionsAttr),
+    File(FileAttr),
+    Record(RecordDecl),
+    Type(TypeDecl),
+    Spec(FunctionSpec),
+    Attr(WildAttr),
+    Function(FunctionDecl),
+}
+impl_from!(Form::Module(ModuleAttr));
+impl_from!(Form::Behaviour(BehaviourAttr));
+impl_from!(Form::Export(ExportAttr));
+impl_from!(Form::Import(ImportAttr));
+impl_from!(Form::ExportType(ExportTypeAttr));
+impl_from!(Form::Compile(CompileOptionsAttr));
+impl_from!(Form::File(FileAttr));
+impl_from!(Form::Record(RecordDecl));
+impl_from!(Form::Type(TypeDecl));
+impl_from!(Form::Spec(FunctionSpec));
+impl_from!(Form::Attr(WildAttr));
+impl_from!(Form::Function(FunctionDecl));
 
 #[derive(Debug)]
 pub struct ModuleAttr {
@@ -58,6 +97,14 @@ pub struct ModuleAttr {
     pub name: String,
 }
 impl_node!(ModuleAttr);
+impl ModuleAttr {
+    pub fn new(line: LineNum, name: String) -> Self {
+        ModuleAttr {
+            line: line,
+            name: name,
+        }
+    }
+}
 
 #[derive(Debug)]
 pub struct BehaviourAttr {
@@ -66,6 +113,19 @@ pub struct BehaviourAttr {
     pub name: String,
 }
 impl_node!(BehaviourAttr);
+impl BehaviourAttr {
+    pub fn new(line: LineNum, name: String) -> Self {
+        BehaviourAttr {
+            line: line,
+            name: name,
+            is_british: true,
+        }
+    }
+    pub fn british(mut self, is_british: bool) -> Self {
+        self.is_british = is_british;
+        self
+    }
+}
 
 #[derive(Debug)]
 pub struct ExportAttr {
@@ -73,6 +133,14 @@ pub struct ExportAttr {
     pub functions: Vec<Export>,
 }
 impl_node!(ExportAttr);
+impl ExportAttr {
+    pub fn new(line: LineNum, functions: Vec<Export>) -> Self {
+        ExportAttr {
+            line: line,
+            functions: functions,
+        }
+    }
+}
 
 #[derive(Debug)]
 pub struct ImportAttr {
@@ -81,6 +149,15 @@ pub struct ImportAttr {
     pub functions: Vec<Import>,
 }
 impl_node!(ImportAttr);
+impl ImportAttr {
+    pub fn new(line: LineNum, module: String, functions: Vec<Import>) -> Self {
+        ImportAttr {
+            line: line,
+            module: module,
+            functions: functions,
+        }
+    }
+}
 
 #[derive(Debug)]
 pub struct ExportTypeAttr {
@@ -88,6 +165,14 @@ pub struct ExportTypeAttr {
     pub types: Vec<ExportType>,
 }
 impl_node!(ExportTypeAttr);
+impl ExportTypeAttr {
+    pub fn new(line: LineNum, types: Vec<ExportType>) -> Self {
+        ExportTypeAttr {
+            line: line,
+            types: types,
+        }
+    }
+}
 
 #[derive(Debug)]
 pub struct CompileOptionsAttr {
@@ -95,6 +180,14 @@ pub struct CompileOptionsAttr {
     pub options: eetf::Term,
 }
 impl_node!(CompileOptionsAttr);
+impl CompileOptionsAttr {
+    pub fn new(line: LineNum, options: eetf::Term) -> Self {
+        CompileOptionsAttr {
+            line: line,
+            options: options,
+        }
+    }
+}
 
 #[derive(Debug)]
 pub struct FileAttr {
@@ -103,6 +196,15 @@ pub struct FileAttr {
     pub original_line: LineNum,
 }
 impl_node!(FileAttr);
+impl FileAttr {
+    pub fn new(line: LineNum, original_file: String, original_line: LineNum) -> Self {
+        FileAttr {
+            line: line,
+            original_file: original_file,
+            original_line: original_line,
+        }
+    }
+}
 
 #[derive(Debug)]
 pub struct RecordDecl {
@@ -138,6 +240,15 @@ pub struct WildAttr {
     pub value: eetf::Term,
 }
 impl_node!(WildAttr);
+impl WildAttr {
+    pub fn new(line: LineNum, name: String, value: eetf::Term) -> Self {
+        WildAttr {
+            line: line,
+            name: name,
+            value: value,
+        }
+    }
+}
 
 #[derive(Debug)]
 pub struct FunctionDecl {
@@ -663,15 +774,49 @@ pub struct Export {
     pub function: String,
     pub arity: Arity,
 }
+impl Export {
+    pub fn new(function: String, arity: Arity) -> Self {
+        Export {
+            function: function,
+            arity: arity,
+        }
+    }
+}
 
 #[derive(Debug)]
 pub struct Import {
     pub function: String,
     pub arity: Arity,
 }
+impl Import {
+    pub fn new(function: String, arity: Arity) -> Self {
+        Import {
+            function: function,
+            arity: arity,
+        }
+    }
+}
 
 #[derive(Debug)]
 pub struct ExportType {
     pub type_: String,
     pub arity: Arity,
+}
+impl ExportType {
+    pub fn new(type_: String, arity: Arity) -> Self {
+        ExportType {
+            type_: type_,
+            arity: arity,
+        }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn it_works() {
+        let _module = ModuleDecl::from_beam_file("src/testdata/test.beam").unwrap();
+    }
 }

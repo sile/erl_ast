@@ -3,6 +3,11 @@ use eetf;
 pub trait Pattern<'a> {
     type Value;
     fn do_match(&self, term: &'a eetf::Term) -> Option<Self::Value>;
+    fn map_match<F, V>(&self, term: &'a eetf::Term, fun: F) -> Option<V>
+        where F: FnOnce(Self::Value) -> V
+    {
+        self.do_match(term).map(fun)
+    }
 }
 
 macro_rules! try_match {
