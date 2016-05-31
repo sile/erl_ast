@@ -131,11 +131,12 @@ impl FromTerm for ast2::ImportAttr {
 }
 impl FromTerm for ast2::ExportTypeAttr {
     fn from(term: &eetf::Term) -> Option<Self> {
-        ("attribute", U32, "export_type", List((Atom, U32))).map_match(term,
-            |(_, line, _, types)|
-            {
-                Self::new(line, types.into_iter().
-    map(|(t, a)| ast2::ExportType::new(t.to_string(), a)).collect())
+        ("attribute", U32, "export_type", List((Atom, U32)))
+            .map_match(term, |(_, line, _, export_types)| {
+                Self::new(line,
+                          export_types.into_iter()
+                              .map(|(t, a)| ast2::ExportType::new(t.to_string(), a))
+                              .collect())
             })
     }
 }
