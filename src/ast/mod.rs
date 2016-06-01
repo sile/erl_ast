@@ -1,5 +1,3 @@
-use num::bigint::BigInt;
-
 macro_rules! impl_from {
     ($to:ident :: $constructor:ident ($from:ty)) => {
         impl ::std::convert::From<$from> for $to {
@@ -21,6 +19,7 @@ macro_rules! impl_node {
 }
 
 pub mod form;
+pub mod literal;
 pub mod type_;
 pub mod expr;
 
@@ -53,87 +52,12 @@ pub trait Node {
     fn line(&self) -> LineNum;
 }
 
-
-// 6.2 Atomic Literals
-#[derive(Debug)]
-pub struct IntegerLit {
-    pub line: LineNum,
-    // pub value: u64,
-    pub value: BigInt,
-}
-impl_node!(IntegerLit);
-impl IntegerLit {
-    pub fn new(line: LineNum, value: BigInt) -> Self {
-        IntegerLit {
-            line: line,
-            value: value,
-        }
-    }
-    pub fn to_u64(&self) -> Option<u64> {
-        use num::traits::ToPrimitive;
-        self.value.to_u64()
-    }
-}
-
-#[derive(Debug)]
-pub struct CharLit {
-    pub line: LineNum,
-    pub value: char,
-}
-impl_node!(CharLit);
-impl CharLit {
-    pub fn new(line: LineNum, value: char) -> Self {
-        CharLit {
-            line: line,
-            value: value,
-        }
-    }
-}
-
-#[derive(Debug)]
-pub struct FloatLit {
-    pub line: LineNum,
-    pub value: f64,
-}
-impl_node!(FloatLit);
-impl FloatLit {
-    pub fn new(line: LineNum, value: f64) -> Self {
-        FloatLit {
-            line: line,
-            value: value,
-        }
-    }
-}
-
-#[derive(Debug)]
-pub struct StringLit {
-    pub line: LineNum,
-    pub value: String,
-}
-impl_node!(StringLit);
-impl StringLit {
-    pub fn new(line: LineNum, value: String) -> Self {
-        StringLit {
-            line: line,
-            value: value,
-        }
-    }
-}
-
-#[derive(Debug)]
-pub struct AtomLit {
-    pub line: LineNum,
-    pub value: String,
-}
-impl_node!(AtomLit);
-impl AtomLit {
-    pub fn new(line: LineNum, value: String) -> Self {
-        AtomLit {
-            line: line,
-            value: value,
-        }
-    }
-}
+// TODO: delete
+pub type AtomLit = self::literal::Atom;
+pub type CharLit = self::literal::Char;
+pub type StringLit = self::literal::Str;
+pub type IntegerLit = self::literal::Integer;
+pub type FloatLit = self::literal::Float;
 
 // 6.3 Patterns
 #[derive(Debug)]
