@@ -1,5 +1,6 @@
 extern crate beam_file;
 extern crate eetf;
+extern crate num;
 
 pub mod ast;
 pub mod ast2;

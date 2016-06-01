@@ -2,22 +2,33 @@ use eetf;
 
 pub trait Pattern<'a> {
     type Value;
-    fn do_match(&self, term: &'a eetf::Term) -> Option<Self::Value>;
+    fn try_match(&self, term: &'a eetf::Term) -> Result<Self::Value, Option<&'a eetf::Term>> {
+        self.do_match(term).ok_or(None)
+    }
+    // TODO: delete
+    fn do_match(&self, term: &'a eetf::Term) -> Option<Self::Value> {
+        self.try_match(term).ok()
+    }
     fn map_match<F, V>(&self, term: &'a eetf::Term, fun: F) -> Option<V>
         where F: FnOnce(Self::Value) -> V
     {
         self.do_match(term).map(fun)
     }
+    fn try_map_match<F, V>(&self, term: &'a eetf::Term, fun: F) -> Result<V, Option<&'a eetf::Term>>
+        where F: FnOnce(Self::Value) -> V
+    {
+        self.try_match(term).map(fun)
+    }
 }
 
-macro_rules! try_match {
-    ($pattern:expr, $value:expr) => (
-        match $pattern.do_match($value) {
-            None => return None,
-            Some(v) => v
-        }
-    )
-}
+// macro_rules! try_match {
+//     ($pattern:expr, $value:expr) => (
+//         match $pattern.do_match($value) {
+//             None => return None,
+//             Some(v) => v
+//         }
+//     )
+// }
 
 // pub struct Or<'a, P: 'static>(pub &'a [P]);
 // impl<'a, P> Pattern<'a> for Or<'a, P>
@@ -56,11 +67,11 @@ impl<'a, P0, P1> Pattern<'a> for (P0, P1)
           P1: Pattern<'a>
 {
     type Value = (P0::Value, P1::Value);
-    fn do_match(&self, term: &'a eetf::Term) -> Option<Self::Value> {
-        term.as_tuple().and_then(|t| if t.elements.len() == 2 {
-            Some((try_match!(self.0, &t.elements[0]), try_match!(self.1, &t.elements[1])))
+    fn try_match(&self, term: &'a eetf::Term) -> Result<Self::Value, Option<&'a eetf::Term>> {
+        term.as_tuple().ok_or(None).and_then(|t| if t.elements.len() == 2 {
+            Ok((try!(self.0.try_match(&t.elements[0])), try!(self.1.try_match(&t.elements[1]))))
         } else {
-            None
+            Err(None)
         })
     }
 }
@@ -70,13 +81,13 @@ impl<'a, P0, P1, P2> Pattern<'a> for (P0, P1, P2)
           P2: Pattern<'a>
 {
     type Value = (P0::Value, P1::Value, P2::Value);
-    fn do_match(&self, term: &'a eetf::Term) -> Option<Self::Value> {
-        term.as_tuple().and_then(|t| if t.elements.len() == 3 {
-            Some((try_match!(self.0, &t.elements[0]),
-                  try_match!(self.1, &t.elements[1]),
-                  try_match!(self.2, &t.elements[2])))
+    fn try_match(&self, term: &'a eetf::Term) -> Result<Self::Value, Option<&'a eetf::Term>> {
+        term.as_tuple().ok_or(None).and_then(|t| if t.elements.len() == 3 {
+            Ok((try!(self.0.try_match(&t.elements[0])),
+                try!(self.1.try_match(&t.elements[1])),
+                try!(self.2.try_match(&t.elements[2]))))
         } else {
-            None
+            Err(None)
         })
     }
 }
@@ -87,14 +98,14 @@ impl<'a, P0, P1, P2, P3> Pattern<'a> for (P0, P1, P2, P3)
           P3: Pattern<'a>
 {
     type Value = (P0::Value, P1::Value, P2::Value, P3::Value);
-    fn do_match(&self, term: &'a eetf::Term) -> Option<Self::Value> {
-        term.as_tuple().and_then(|t| if t.elements.len() == 4 {
-            Some((try_match!(self.0, &t.elements[0]),
-                  try_match!(self.1, &t.elements[1]),
-                  try_match!(self.2, &t.elements[2]),
-                  try_match!(self.3, &t.elements[3])))
+    fn try_match(&self, term: &'a eetf::Term) -> Result<Self::Value, Option<&'a eetf::Term>> {
+        term.as_tuple().ok_or(None).and_then(|t| if t.elements.len() == 4 {
+            Ok((try!(self.0.try_match(&t.elements[0])),
+                try!(self.1.try_match(&t.elements[1])),
+                try!(self.2.try_match(&t.elements[2])),
+                try!(self.3.try_match(&t.elements[3]))))
         } else {
-            None
+            Err(None)
         })
     }
 }
@@ -106,15 +117,37 @@ impl<'a, P0, P1, P2, P3, P4> Pattern<'a> for (P0, P1, P2, P3, P4)
           P4: Pattern<'a>
 {
     type Value = (P0::Value, P1::Value, P2::Value, P3::Value, P4::Value);
-    fn do_match(&self, term: &'a eetf::Term) -> Option<Self::Value> {
-        term.as_tuple().and_then(|t| if t.elements.len() == 5 {
-            Some((try_match!(self.0, &t.elements[0]),
-                  try_match!(self.1, &t.elements[1]),
-                  try_match!(self.2, &t.elements[2]),
-                  try_match!(self.3, &t.elements[3]),
-                  try_match!(self.4, &t.elements[4])))
+    fn try_match(&self, term: &'a eetf::Term) -> Result<Self::Value, Option<&'a eetf::Term>> {
+        term.as_tuple().ok_or(None).and_then(|t| if t.elements.len() == 5 {
+            Ok((try!(self.0.try_match(&t.elements[0])),
+                try!(self.1.try_match(&t.elements[1])),
+                try!(self.2.try_match(&t.elements[2])),
+                try!(self.3.try_match(&t.elements[3])),
+                try!(self.4.try_match(&t.elements[4]))))
         } else {
-            None
+            Err(None)
+        })
+    }
+}
+impl<'a, P0, P1, P2, P3, P4, P5> Pattern<'a> for (P0, P1, P2, P3, P4, P5)
+    where P0: Pattern<'a>,
+          P1: Pattern<'a>,
+          P2: Pattern<'a>,
+          P3: Pattern<'a>,
+          P4: Pattern<'a>,
+          P5: Pattern<'a>
+{
+    type Value = (P0::Value, P1::Value, P2::Value, P3::Value, P4::Value, P5::Value);
+    fn try_match(&self, term: &'a eetf::Term) -> Result<Self::Value, Option<&'a eetf::Term>> {
+        term.as_tuple().ok_or(None).and_then(|t| if t.elements.len() == 6 {
+            Ok((try!(self.0.try_match(&t.elements[0])),
+                try!(self.1.try_match(&t.elements[1])),
+                try!(self.2.try_match(&t.elements[2])),
+                try!(self.3.try_match(&t.elements[3])),
+                try!(self.4.try_match(&t.elements[4])),
+                try!(self.5.try_match(&t.elements[5]))))
+        } else {
+            Err(None)
         })
     }
 }
@@ -124,11 +157,11 @@ impl<'a, P0> Pattern<'a> for List1<P0>
     where P0: Pattern<'a>
 {
     type Value = P0::Value;
-    fn do_match(&self, term: &'a eetf::Term) -> Option<Self::Value> {
-        term.as_list().and_then(|l| if l.elements.len() == 1 {
-            Some(try_match!(self.0, &l.elements[0]))
+    fn try_match(&self, term: &'a eetf::Term) -> Result<Self::Value, Option<&'a eetf::Term>> {
+        term.as_list().ok_or(None).and_then(|l| if l.elements.len() == 1 {
+            self.0.try_match(&l.elements[0])
         } else {
-            None
+            Err(None)
         })
     }
 }
@@ -139,11 +172,29 @@ impl<'a, P0, P1> Pattern<'a> for List2<P0, P1>
           P1: Pattern<'a>
 {
     type Value = (P0::Value, P1::Value);
-    fn do_match(&self, term: &'a eetf::Term) -> Option<Self::Value> {
-        term.as_list().and_then(|l| if l.elements.len() == 2 {
-            Some((try_match!(self.0, &l.elements[0]), try_match!(self.1, &l.elements[1])))
+    fn try_match(&self, term: &'a eetf::Term) -> Result<Self::Value, Option<&'a eetf::Term>> {
+        term.as_list().ok_or(None).and_then(|l| if l.elements.len() == 2 {
+            Ok((try!(self.0.try_match(&l.elements[0])), try!(self.1.try_match(&l.elements[1]))))
         } else {
-            None
+            Err(None)
+        })
+    }
+}
+
+pub struct List3<P0, P1, P2>(pub P0, pub P1, pub P2);
+impl<'a, P0, P1, P2> Pattern<'a> for List3<P0, P1, P2>
+    where P0: Pattern<'a>,
+          P1: Pattern<'a>,
+          P2: Pattern<'a>
+{
+    type Value = (P0::Value, P1::Value, P2::Value);
+    fn try_match(&self, term: &'a eetf::Term) -> Result<Self::Value, Option<&'a eetf::Term>> {
+        term.as_list().ok_or(None).and_then(|l| if l.elements.len() == 3 {
+            Ok((try!(self.0.try_match(&l.elements[0])),
+                try!(self.1.try_match(&l.elements[1])),
+                try!(self.2.try_match(&l.elements[2]))))
+        } else {
+            Err(None)
         })
     }
 }
@@ -153,12 +204,12 @@ impl<'a, P0> Pattern<'a> for Cons<P0>
     where P0: Pattern<'a>
 {
     type Value = (P0::Value, &'a [eetf::Term]);
-    fn do_match(&self, term: &'a eetf::Term) -> Option<Self::Value> {
-        term.as_list().and_then(|l| if !l.elements.is_empty() {
+    fn try_match(&self, term: &'a eetf::Term) -> Result<Self::Value, Option<&'a eetf::Term>> {
+        term.as_list().ok_or(None).and_then(|l| if !l.elements.is_empty() {
             let head = &l.elements[0];
-            Some((try_match!(self.0, head), &l.elements[1..]))
+            Ok((try!(self.0.try_match(head)), &l.elements[1..]))
         } else {
-            None
+            Err(None)
         })
     }
 }
@@ -166,11 +217,11 @@ impl<'a, P0> Pattern<'a> for Cons<P0>
 pub struct Nil;
 impl<'a> Pattern<'a> for Nil {
     type Value = &'a [eetf::Term];
-    fn do_match(&self, term: &'a eetf::Term) -> Option<Self::Value> {
-        term.as_list().and_then(|l| if l.elements.is_empty() {
-            Some(&l.elements[..])
+    fn try_match(&self, term: &'a eetf::Term) -> Result<Self::Value, Option<&'a eetf::Term>> {
+        term.as_list().ok_or(None).and_then(|l| if l.elements.is_empty() {
+            Ok(&l.elements[..])
         } else {
-            None
+            Err(None)
         })
     }
 }
@@ -199,17 +250,20 @@ impl<'a, P> Pattern<'a> for List<P>
     where P: Pattern<'a>
 {
     type Value = Vec<P::Value>;
-    fn do_match(&self, term: &'a eetf::Term) -> Option<Self::Value> {
-        term.as_list().and_then(|l| {
-            let mut v = Vec::with_capacity(l.elements.len());
-            for e in &l.elements {
-                v.push(try_match!(self.0, e));
-            }
-            Some(v)
-        })
+    fn try_match(&self, term: &'a eetf::Term) -> Result<Self::Value, Option<&'a eetf::Term>> {
+        term.as_list()
+            .ok_or(None)
+            .and_then(|l| {
+                let mut v = Vec::with_capacity(l.elements.len());
+                for e in &l.elements {
+                    v.push(try!(self.0.try_match(e)));
+                }
+                Ok(v)
+            })
     }
 }
 
+// XXX: Support latin-1 (?)
 pub struct Str;
 impl<'a> Pattern<'a> for Str {
     type Value = String;
@@ -218,11 +272,7 @@ impl<'a> Pattern<'a> for Str {
             let mut s = String::with_capacity(l.elements.len());
             for c in &l.elements {
                 if let Some(c) = c.as_fix_integer()
-                    .and_then(|i| if 0 <= i.value && i.value < 0x80 {
-                        Some(i.value as u8 as char)
-                    } else {
-                        None
-                    }) {
+                    .and_then(|i| ::std::char::from_u32(i.value as u32)) {
                     s.push(c);
                 } else {
                     return None;
@@ -245,11 +295,39 @@ impl<'a> Pattern<'a> for U32 {
     }
 }
 
+pub struct I32;
+impl<'a> Pattern<'a> for I32 {
+    type Value = i32;
+    fn do_match(&self, term: &'a eetf::Term) -> Option<Self::Value> {
+        term.as_fix_integer().map(|i| i.value)
+    }
+}
+
 pub struct I64;
 impl<'a> Pattern<'a> for I64 {
     type Value = i64;
     fn do_match(&self, term: &'a eetf::Term) -> Option<Self::Value> {
         term.as_fix_integer().map(|i| i.value as Self::Value)
+    }
+}
+
+pub struct U64;
+impl<'a> Pattern<'a> for U64 {
+    type Value = u64;
+    fn do_match(&self, term: &'a eetf::Term) -> Option<Self::Value> {
+        use num::traits::ToPrimitive;
+        None.or_else(|| term.as_fix_integer().map(|i| i.value as Self::Value))
+            .or_else(|| term.as_big_integer().and_then(|i| i.value.to_u64()))
+    }
+}
+
+pub struct Int; // TODO: UInt (?)
+impl<'a> Pattern<'a> for Int {
+    type Value = ::num::bigint::BigInt;
+    fn do_match(&self, term: &'a eetf::Term) -> Option<Self::Value> {
+        use num::traits::FromPrimitive;
+        None.or_else(|| term.as_fix_integer().map(|i| FromPrimitive::from_i32(i.value).unwrap()))
+            .or_else(|| term.as_big_integer().map(|i| i.value.clone()))
     }
 }
 

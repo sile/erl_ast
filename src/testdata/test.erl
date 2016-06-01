@@ -13,6 +13,7 @@
 -export([to_my_list/1]).
 -export([my_record/0]).
 -export([guard/1]).
+-export([sum/1, op/1]).
 
 -export_type([my_list/1]).
 -export_type([my_cons/2]).
@@ -74,7 +75,8 @@ to_my_list([H | T]) -> cons(H, to_my_list(T)).
 -spec my_record() -> #my_record{c :: pid()}.
 my_record() ->
     #my_record{
-       c = self()
+       c = self(),
+       _ = '_'
       }.
 
 -spec guard(integer() | atom()) -> integer() | atom();
@@ -87,3 +89,13 @@ guard(X) when is_integer(X), 0 < X, X < 100 -> 10 / X;
 guard(#{hello := X}) when is_atom(X) orelse (is_integer(X) andalso X < 0)-> X;
 guard({_, #{}, <<10, Bin/binary>>}) ->  Bin;
 guard(X) when is_tuple(X) -> tuple_size(X).
+
+-spec sum([number()]) -> number().
+sum(List) ->
+    (fun Rec ([]) -> 0;
+         Rec ([X | Xs]) -> X + Rec(Xs)
+     end)(List).
+
+-spec op(integer()) -> integer().
+op(Num) ->
+    (Num + 1) band 16#ffffffff.

@@ -1,13 +1,14 @@
+#![allow(dead_code)]
 use std::rc::Rc;
 use std::ops::Deref;
 use std::ops::DerefMut;
 use std::ops::Range;
 
-mod module;
+// mod module;
 pub mod matcher;
-mod parser;
+// mod parser;
 
-pub use self::module::Module;
+// pub use self::module::Module;
 
 #[derive(Debug)]
 pub struct Node<T> {
