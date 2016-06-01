@@ -1493,18 +1493,3 @@ impl ExportType {
         }
     }
 }
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn it_works() {
-        let _module = ModuleDecl::from_beam_file("src/testdata/test.beam")
-            .map_err(|err| {
-                println!("[ERROR] {}", err);
-                "Failed"
-            })
-            .unwrap();
-    }
-}
