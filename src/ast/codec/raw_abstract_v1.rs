@@ -664,7 +664,7 @@ impl FromTerm for ast::form::RecordFieldDecl {
             })
             .or_else(|| {
                 ("typed_record_field", to!(ast::form::RecordFieldDecl), to!(ast::Type))
-                    .map_match(term, |(_, field, type_)| field.type_(type_))
+                    .map_match(term, |(_, field, type_)| field.typ(type_))
             })
     }
 }

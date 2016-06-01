@@ -7,7 +7,7 @@ use result::BeamParseResult;
 use ast;
 use ast::LineNum;
 use ast::Arity;
-use ast::type_;
+use ast::typ;
 use ast::expr;
 
 #[derive(Debug)]
@@ -199,17 +199,17 @@ pub struct TypeDecl {
     pub line: LineNum,
     pub is_opaque: bool,
     pub name: String,
-    pub vars: Vec<type_::Var>,
-    pub type_: type_::Type,
+    pub vars: Vec<typ::Var>,
+    pub typ: typ::Type,
 }
 impl_node!(TypeDecl);
 impl TypeDecl {
-    pub fn new(line: LineNum, name: String, vars: Vec<type_::Var>, type_: type_::Type) -> Self {
+    pub fn new(line: LineNum, name: String, vars: Vec<typ::Var>, typ: typ::Type) -> Self {
         TypeDecl {
             line: line,
             name: name,
             vars: vars,
-            type_: type_,
+            typ: typ,
             is_opaque: false,
         }
     }
@@ -224,12 +224,12 @@ pub struct FunSpec {
     pub line: LineNum,
     pub module: Option<String>,
     pub name: String,
-    pub types: Vec<type_::Fun>,
+    pub types: Vec<typ::Fun>,
     pub is_callback: bool,
 }
 impl_node!(FunSpec);
 impl FunSpec {
-    pub fn new(line: LineNum, name: String, types: Vec<type_::Fun>) -> Self {
+    pub fn new(line: LineNum, name: String, types: Vec<typ::Fun>) -> Self {
         FunSpec {
             line: line,
             module: None,
@@ -286,7 +286,7 @@ impl FunDecl {
 pub struct RecordFieldDecl {
     pub line: LineNum,
     pub name: String,
-    pub type_: type_::Type,
+    pub typ: typ::Type,
     pub default_value: expr::Expression,
 }
 impl_node!(RecordFieldDecl);
@@ -295,12 +295,12 @@ impl RecordFieldDecl {
         RecordFieldDecl {
             line: line,
             name: name,
-            type_: type_::Type::any(line),
+            typ: typ::Type::any(line),
             default_value: expr::Expression::atom(line, "undefined".to_string()),
         }
     }
-    pub fn type_(mut self, type_: type_::Type) -> Self {
-        self.type_ = type_;
+    pub fn typ(mut self, typ: typ::Type) -> Self {
+        self.typ = typ;
         self
     }
     pub fn default_value(mut self, value: expr::Expression) -> Self {
@@ -339,13 +339,13 @@ impl Import {
 
 #[derive(Debug)]
 pub struct ExportType {
-    pub type_: String,
+    pub typ: String,
     pub arity: Arity,
 }
 impl ExportType {
-    pub fn new(type_: String, arity: Arity) -> Self {
+    pub fn new(typ: String, arity: Arity) -> Self {
         ExportType {
-            type_: type_,
+            typ: typ,
             arity: arity,
         }
     }

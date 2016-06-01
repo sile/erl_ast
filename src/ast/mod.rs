@@ -24,8 +24,8 @@ pub mod pattern;
 pub mod expr;
 pub mod clause;
 pub mod guard;
+pub mod typ;
 
-pub mod type_;
 pub mod codec;
 pub mod matcher;
 
@@ -75,6 +75,23 @@ pub type Comprehension = expr::Comprehension;
 pub type Clause = clause::Clause;
 pub type OrGuard = guard::OrGuard;
 pub type Guard = guard::Guard;
+pub type Type = typ::Type;
+pub type AnnotatedType = typ::Annotated;
+pub type BitStringType = typ::BitString;
+pub type AnyFunType = typ::AnyFun;
+pub type FunctionType = typ::Fun;
+pub type RangeType = typ::Range;
+pub type MapType = typ::Map;
+pub type TupleType = typ::Tuple;
+pub type AnyTupleType = typ::AnyTuple;
+pub type RecordType = typ::Record;
+pub type RemoteType = typ::RemoteType;
+pub type UserType = typ::UserType;
+pub type BuiltInType = typ::BuiltInType;
+pub type UnionType = typ::Union;
+pub type RecordFieldType = typ::RecordField;
+pub type MapPairType = typ::MapPair;
+pub type FunctionConstraint = typ::Constraint;
 
 // TODO: Move to common module
 #[derive(Debug)]
@@ -401,324 +418,6 @@ impl ExternalFun {
             module: module,
             function: function,
             arity: arity,
-        }
-    }
-}
-
-// 6.7 Types
-#[derive(Debug)]
-pub enum Type {
-    Atom(Box<AtomLit>),
-    Integer(Box<IntegerLit>),
-    Var(Box<Variable>),
-    Annotated(Box<AnnotatedType>),
-    UnaryOp(Box<UnaryOp<Type>>),
-    BinaryOp(Box<BinaryOp<Type>>),
-    BitString(Box<BitStringType>),
-    Nil(Box<Nil>),
-    AnyFun(Box<AnyFunType>),
-    Function(Box<FunctionType>),
-    Range(Box<RangeType>),
-    Map(Box<MapType>),
-    BuiltIn(Box<BuiltInType>),
-    Record(Box<RecordType>),
-    Remote(Box<RemoteType>),
-    AnyTuple(Box<AnyTupleType>),
-    Tuple(Box<TupleType>),
-    Union(Box<UnionType>),
-    User(Box<UserType>),
-}
-impl_from!(Type::Atom(AtomLit));
-impl_from!(Type::Integer(IntegerLit));
-impl_from!(Type::Var(Variable));
-impl_from!(Type::Annotated(AnnotatedType));
-impl_from!(Type::UnaryOp(UnaryOp<Type>));
-impl_from!(Type::BinaryOp(BinaryOp<Type>));
-impl_from!(Type::BitString(BitStringType));
-impl_from!(Type::Nil(Nil));
-impl_from!(Type::AnyFun(AnyFunType));
-impl_from!(Type::Function(FunctionType));
-impl_from!(Type::Range(RangeType));
-impl_from!(Type::Map(MapType));
-impl_from!(Type::BuiltIn(BuiltInType));
-impl_from!(Type::Record(RecordType));
-impl_from!(Type::Remote(RemoteType));
-impl_from!(Type::AnyTuple(AnyTupleType));
-impl_from!(Type::Tuple(TupleType));
-impl_from!(Type::Union(UnionType));
-impl_from!(Type::User(UserType));
-impl Type {
-    pub fn any(line: LineNum) -> Self {
-        Type::BuiltIn(Box::new(BuiltInType::new(line, "any".to_string(), Vec::new())))
-    }
-}
-
-#[derive(Debug)]
-pub struct UserType {
-    pub line: LineNum,
-    pub name: String,
-    pub args: Vec<Type>,
-}
-impl_node!(UserType);
-impl UserType {
-    pub fn new(line: LineNum, name: String, args: Vec<Type>) -> Self {
-        UserType {
-            line: line,
-            name: name,
-            args: args,
-        }
-    }
-}
-
-#[derive(Debug)]
-pub struct UnionType {
-    pub line: LineNum,
-    pub types: Vec<Type>,
-}
-impl_node!(UnionType);
-impl UnionType {
-    pub fn new(line: LineNum, types: Vec<Type>) -> Self {
-        UnionType {
-            line: line,
-            types: types,
-        }
-    }
-}
-
-#[derive(Debug)]
-pub struct AnyTupleType {
-    pub line: LineNum,
-}
-impl_node!(AnyTupleType);
-impl AnyTupleType {
-    pub fn new(line: LineNum) -> Self {
-        AnyTupleType { line: line }
-    }
-}
-
-#[derive(Debug)]
-pub struct TupleType {
-    pub line: LineNum,
-    pub elements: Vec<Type>,
-}
-impl_node!(TupleType);
-impl TupleType {
-    pub fn new(line: LineNum, elements: Vec<Type>) -> Self {
-        TupleType {
-            line: line,
-            elements: elements,
-        }
-    }
-}
-
-#[derive(Debug)]
-pub struct RemoteType {
-    pub line: LineNum,
-    pub module: String,
-    pub function: String,
-    pub args: Vec<Type>,
-}
-impl_node!(RemoteType);
-impl RemoteType {
-    pub fn new(line: LineNum, module: String, function: String, args: Vec<Type>) -> Self {
-        RemoteType {
-            line: line,
-            module: module,
-            function: function,
-            args: args,
-        }
-    }
-}
-
-#[derive(Debug)]
-pub struct RecordType {
-    pub line: LineNum,
-    pub name: String,
-    pub fields: Vec<RecordFieldType>,
-}
-impl_node!(RecordType);
-impl RecordType {
-    pub fn new(line: LineNum, name: String, fields: Vec<RecordFieldType>) -> Self {
-        RecordType {
-            line: line,
-            name: name,
-            fields: fields,
-        }
-    }
-}
-
-#[derive(Debug)]
-pub struct RecordFieldType {
-    pub line: LineNum,
-    pub name: String,
-    pub type_: Type,
-}
-impl_node!(RecordFieldType);
-impl RecordFieldType {
-    pub fn new(line: LineNum, name: String, type_: Type) -> Self {
-        RecordFieldType {
-            line: line,
-            name: name,
-            type_: type_,
-        }
-    }
-}
-
-#[derive(Debug)]
-pub struct BuiltInType {
-    pub line: LineNum,
-    pub name: String,
-    pub args: Vec<Type>,
-}
-impl_node!(BuiltInType);
-impl BuiltInType {
-    pub fn new(line: LineNum, name: String, args: Vec<Type>) -> Self {
-        BuiltInType {
-            line: line,
-            name: name,
-            args: args,
-        }
-    }
-}
-
-#[derive(Debug)]
-pub struct MapType {
-    pub line: LineNum,
-    pub pairs: Vec<MapPairType>,
-}
-impl_node!(MapType);
-impl MapType {
-    pub fn new(line: LineNum, pairs: Vec<MapPairType>) -> Self {
-        MapType {
-            line: line,
-            pairs: pairs,
-        }
-    }
-}
-
-#[derive(Debug)]
-pub struct MapPairType {
-    pub line: LineNum,
-    pub key: Type,
-    pub value: Type,
-}
-impl_node!(MapPairType);
-impl MapPairType {
-    pub fn new(line: LineNum, key: Type, value: Type) -> Self {
-        MapPairType {
-            line: line,
-            key: key,
-            value: value,
-        }
-    }
-}
-
-#[derive(Debug)]
-pub struct AnnotatedType {
-    pub line: LineNum,
-    pub name: Variable,
-    pub type_: Type,
-}
-impl_node!(AnnotatedType);
-impl AnnotatedType {
-    pub fn new(line: LineNum, name: Variable, type_: Type) -> Self {
-        AnnotatedType {
-            line: line,
-            name: name,
-            type_: type_,
-        }
-    }
-}
-
-#[derive(Debug)]
-pub struct BitStringType {
-    pub line: LineNum,
-    pub bytes: u64,
-    pub tail_bits: u64,
-}
-impl_node!(BitStringType);
-impl BitStringType {
-    pub fn new(line: LineNum, bytes: u64, tail_bits: u64) -> Self {
-        BitStringType {
-            line: line,
-            bytes: bytes,
-            tail_bits: tail_bits,
-        }
-    }
-}
-
-#[derive(Debug)]
-pub struct AnyFunType {
-    pub line: LineNum,
-    pub return_type: Option<Type>,
-}
-impl_node!(AnyFunType);
-impl AnyFunType {
-    pub fn new(line: LineNum) -> Self {
-        AnyFunType {
-            line: line,
-            return_type: None,
-        }
-    }
-    pub fn return_type(mut self, return_type: Type) -> Self {
-        self.return_type = Some(return_type);
-        self
-    }
-}
-
-#[derive(Debug)]
-pub struct FunctionType {
-    pub line: LineNum,
-    pub args: Vec<Type>,
-    pub return_type: Type,
-    pub constraints: Vec<FunctionConstraint>,
-}
-impl_node!(FunctionType);
-impl FunctionType {
-    pub fn new(line: LineNum, args: Vec<Type>, return_type: Type) -> Self {
-        FunctionType {
-            line: line,
-            args: args,
-            return_type: return_type,
-            constraints: Vec::new(),
-        }
-    }
-    pub fn constraints(mut self, constraints: Vec<FunctionConstraint>) -> Self {
-        self.constraints = constraints;
-        self
-    }
-}
-
-#[derive(Debug)]
-pub struct FunctionConstraint {
-    pub line: LineNum,
-    pub var: Variable,
-    pub subtype: Type,
-}
-impl_node!(FunctionConstraint);
-impl FunctionConstraint {
-    pub fn new(line: LineNum, var: Variable, subtype: Type) -> Self {
-        FunctionConstraint {
-            line: line,
-            var: var,
-            subtype: subtype,
-        }
-    }
-}
-
-#[derive(Debug)]
-pub struct RangeType {
-    pub line: LineNum,
-    pub low: Type,
-    pub high: Type,
-}
-impl_node!(RangeType);
-impl RangeType {
-    pub fn new(line: LineNum, low: Type, high: Type) -> Self {
-        RangeType {
-            line: line,
-            low: low,
-            high: high,
         }
     }
 }
