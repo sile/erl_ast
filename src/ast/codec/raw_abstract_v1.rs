@@ -22,11 +22,11 @@ impl AbstractCode {
         let code = try!(eetf::Term::decode(io::Cursor::new(&chunk.data)));
         Ok(AbstractCode { code: code })
     }
-    pub fn to_module_decl(&self) -> BeamParseResult<ast::ModuleDecl> {
-        let (_, forms) = try!(("raw_abstract_v1", List(to::<ast::Form>()))
+    pub fn to_module_decl(&self) -> BeamParseResult<ast::form::ModuleDecl> {
+        let (_, forms) = try!(("raw_abstract_v1", List(to::<ast::form::Form>()))
             .try_match(&self.code)
             .map_err(|term| BeamParseError::UnexpectedTerm(term.unwrap().clone())));
-        Ok(ast::ModuleDecl { forms: forms })
+        Ok(ast::form::ModuleDecl { forms: forms })
     }
 }
 
@@ -72,21 +72,21 @@ macro_rules! try_from {
         }
 }
 
-impl FromTerm for ast::Form {
+impl FromTerm for ast::form::Form {
     fn try_from(term: &eetf::Term) -> Result<Self, Option<&eetf::Term>> {
-        try_from!(term, ast::ModuleAttr);
-        try_from!(term, ast::FileAttr);
-        try_from!(term, ast::BehaviourAttr);
-        try_from!(term, ast::ExportAttr);
-        try_from!(term, ast::ImportAttr);
-        try_from!(term, ast::ExportTypeAttr);
-        try_from!(term, ast::CompileOptionsAttr);
-        try_from!(term, ast::RecordDecl);
-        try_from!(term, ast::TypeDecl);
-        try_from!(term, ast::FunctionSpec);
-        try_from!(term, ast::FunctionDecl);
-        try_from!(term, ast::WildAttr);
-        try_from!(term, ast::Eof);
+        try_from!(term, ast::form::ModuleAttr);
+        try_from!(term, ast::form::FileAttr);
+        try_from!(term, ast::form::BehaviourAttr);
+        try_from!(term, ast::form::ExportAttr);
+        try_from!(term, ast::form::ImportAttr);
+        try_from!(term, ast::form::ExportTypeAttr);
+        try_from!(term, ast::form::CompileOptionsAttr);
+        try_from!(term, ast::form::RecordDecl);
+        try_from!(term, ast::form::TypeDecl);
+        try_from!(term, ast::form::FunSpec);
+        try_from!(term, ast::form::FunDecl);
+        try_from!(term, ast::form::WildAttr);
+        try_from!(term, ast::form::Eof);
         Err(Some(term))
     }
 }
@@ -621,13 +621,13 @@ impl FromTerm for ast::Guard {
         Err(Some(term))
     }
 }
-impl FromTerm for ast::ModuleAttr {
+impl FromTerm for ast::form::ModuleAttr {
     fn from(term: &eetf::Term) -> Option<Self> {
         ("attribute", I32, "module", Atom)
             .map_match(term, |(_, line, _, name)| Self::new(line, name.to_string()))
     }
 }
-impl FromTerm for ast::FileAttr {
+impl FromTerm for ast::form::FileAttr {
     fn from(term: &eetf::Term) -> Option<Self> {
         ("attribute", I32, "file", (Str, I32))
             .map_match(term, |(_, line, _, (original_file, original_line))| {
@@ -635,7 +635,7 @@ impl FromTerm for ast::FileAttr {
             })
     }
 }
-impl FromTerm for ast::BehaviourAttr {
+impl FromTerm for ast::form::BehaviourAttr {
     fn from(term: &eetf::Term) -> Option<Self> {
         ("attribute", I32, Either("behaviour", "behavior"), Atom)
             .map_match(term, |(_, line, british, name)| {
@@ -643,14 +643,14 @@ impl FromTerm for ast::BehaviourAttr {
             })
     }
 }
-impl FromTerm for ast::RecordDecl {
+impl FromTerm for ast::form::RecordDecl {
     fn from(term: &eetf::Term) -> Option<Self> {
-        ("attribute", I32, "record", (Atom, List(to::<ast::RecordFieldDecl>())))
+        ("attribute", I32, "record", (Atom, List(to::<ast::form::RecordFieldDecl>())))
             .map_match(term,
                        |(_, line, _, (name, fields))| Self::new(line, name.to_string(), fields))
     }
 }
-impl FromTerm for ast::RecordFieldDecl {
+impl FromTerm for ast::form::RecordFieldDecl {
     fn from(term: &eetf::Term) -> Option<Self> {
         None.or_else(|| {
                 ("record_field", I32, to!(ast::AtomLit))
@@ -663,7 +663,7 @@ impl FromTerm for ast::RecordFieldDecl {
                     })
             })
             .or_else(|| {
-                ("typed_record_field", to!(ast::RecordFieldDecl), to!(ast::Type))
+                ("typed_record_field", to!(ast::form::RecordFieldDecl), to!(ast::Type))
                     .map_match(term, |(_, field, type_)| field.type_(type_))
             })
     }
@@ -701,7 +701,7 @@ impl FromTerm for ast::Variable {
         ("var", I32, Atom).map_match(term, |(_, line, name)| Self::new(line, name.to_string()))
     }
 }
-impl FromTerm for ast::TypeDecl {
+impl FromTerm for ast::form::TypeDecl {
     fn from(term: &eetf::Term) -> Option<Self> {
         ("attribute",
          I32,
@@ -712,7 +712,7 @@ impl FromTerm for ast::TypeDecl {
             })
     }
 }
-impl FromTerm for ast::FunctionDecl {
+impl FromTerm for ast::form::FunDecl {
     fn try_from(term: &eetf::Term) -> Result<Self, Option<&eetf::Term>> {
         ("function", I32, Atom, U32, List(to!(ast::Clause))).try_map_match(term, |(_,
                                                                              line,
@@ -723,7 +723,7 @@ impl FromTerm for ast::FunctionDecl {
         })
     }
 }
-impl FromTerm for ast::FunctionSpec {
+impl FromTerm for ast::form::FunSpec {
     fn from(term: &eetf::Term) -> Option<Self> {
         None.or_else(|| {
                 ("attribute",
@@ -742,54 +742,54 @@ impl FromTerm for ast::FunctionSpec {
             })
     }
 }
-impl FromTerm for ast::ExportAttr {
+impl FromTerm for ast::form::ExportAttr {
     fn from(term: &eetf::Term) -> Option<Self> {
         ("attribute", I32, "export", List((Atom, U32))).map_match(term, |(_, line, _, functions)| {
             Self::new(line,
                       functions.into_iter()
-                          .map(|(f, a)| ast::Export::new(f.to_string(), a))
+                          .map(|(f, a)| ast::form::Export::new(f.to_string(), a))
                           .collect())
         })
     }
 }
-impl FromTerm for ast::ImportAttr {
+impl FromTerm for ast::form::ImportAttr {
     fn from(term: &eetf::Term) -> Option<Self> {
         ("attribute", I32, "import", (Atom, List((Atom, U32))))
             .map_match(term, |(_, line, _, (module, functions))| {
                 Self::new(line,
                           module.to_string(),
                           functions.into_iter()
-                              .map(|(f, a)| ast::Import::new(f.to_string(), a))
+                              .map(|(f, a)| ast::form::Import::new(f.to_string(), a))
                               .collect())
             })
     }
 }
-impl FromTerm for ast::ExportTypeAttr {
+impl FromTerm for ast::form::ExportTypeAttr {
     fn from(term: &eetf::Term) -> Option<Self> {
         ("attribute", I32, "export_type", List((Atom, U32)))
             .map_match(term, |(_, line, _, export_types)| {
                 Self::new(line,
                           export_types.into_iter()
-                              .map(|(t, a)| ast::ExportType::new(t.to_string(), a))
+                              .map(|(t, a)| ast::form::ExportType::new(t.to_string(), a))
                               .collect())
             })
     }
 }
-impl FromTerm for ast::CompileOptionsAttr {
+impl FromTerm for ast::form::CompileOptionsAttr {
     fn from(term: &eetf::Term) -> Option<Self> {
         ("attribute", I32, "compile", Term).map_match(term, |(_, line, _, options)| {
             Self::new(line, options.clone())
         })
     }
 }
-impl FromTerm for ast::WildAttr {
+impl FromTerm for ast::form::WildAttr {
     fn from(term: &eetf::Term) -> Option<Self> {
         ("attribute", I32, Atom, Term).map_match(term, |(_, line, name, value)| {
             Self::new(line, name.to_string(), value.clone())
         })
     }
 }
-impl FromTerm for ast::Eof {
+impl FromTerm for ast::form::Eof {
     fn from(term: &eetf::Term) -> Option<Self> {
         ("eof", I32).map_match(term, |(_, line)| Self::new(line))
     }

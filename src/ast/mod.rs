@@ -1,22 +1,32 @@
-use eetf;
 use num::bigint::BigInt;
 
-pub mod codec;
-mod matcher;
-
-use std::path::Path;
-use std::convert::From;
-use result::BeamParseResult;
+macro_rules! impl_from {
+    ($to:ident :: $constructor:ident ($from:ty)) => {
+        impl ::std::convert::From<$from> for $to {
+            fn from(x: $from) -> Self {
+                $to::$constructor(::std::convert::From::from(x))
+            }
+        }
+    }
+}
 
 macro_rules! impl_node {
     ($x:ty) => {
-        impl Node for $x {
+        impl ::ast::Node for $x {
             fn line(&self) -> LineNum {
                 self.line
             }
         }
     }
 }
+
+pub mod form;
+pub mod type_;
+pub mod expr;
+
+pub mod codec;
+pub mod matcher;
+
 macro_rules! impl_node_1 {
     ($x:ty) => {
         impl<T> Node for $x {
@@ -43,315 +53,6 @@ pub trait Node {
     fn line(&self) -> LineNum;
 }
 
-// 6.1 Module Declarations and Forms
-#[derive(Debug)]
-pub struct ModuleDecl {
-    pub forms: Vec<Form>,
-}
-impl ModuleDecl {
-    pub fn from_beam_file<P: AsRef<Path>>(path: P) -> BeamParseResult<Self> {
-        let code = try!(self::codec::raw_abstract_v1::AbstractCode::from_beam_file(path));
-        code.to_module_decl()
-    }
-}
-
-macro_rules! impl_from {
-    ($to:ident :: $constructor:ident ($from:ty)) => {
-        impl From<$from> for $to {
-            fn from(x: $from) -> Self {
-                $to::$constructor(::std::convert::From::from(x))
-            }
-        }
-    }
-}
-
-#[derive(Debug)]
-pub enum Form {
-    Module(ModuleAttr),
-    Behaviour(BehaviourAttr),
-    Export(ExportAttr),
-    Import(ImportAttr),
-    ExportType(ExportTypeAttr),
-    Compile(CompileOptionsAttr),
-    File(FileAttr),
-    Record(RecordDecl),
-    Type(TypeDecl),
-    Spec(FunctionSpec),
-    Attr(WildAttr),
-    Function(FunctionDecl),
-    Eof(Eof),
-}
-impl_from!(Form::Module(ModuleAttr));
-impl_from!(Form::Behaviour(BehaviourAttr));
-impl_from!(Form::Export(ExportAttr));
-impl_from!(Form::Import(ImportAttr));
-impl_from!(Form::ExportType(ExportTypeAttr));
-impl_from!(Form::Compile(CompileOptionsAttr));
-impl_from!(Form::File(FileAttr));
-impl_from!(Form::Record(RecordDecl));
-impl_from!(Form::Type(TypeDecl));
-impl_from!(Form::Spec(FunctionSpec));
-impl_from!(Form::Attr(WildAttr));
-impl_from!(Form::Function(FunctionDecl));
-impl_from!(Form::Eof(Eof));
-
-#[derive(Debug)]
-pub struct Eof {
-    pub line: LineNum,
-}
-impl_node!(Eof);
-impl Eof {
-    pub fn new(line: LineNum) -> Self {
-        Eof { line: line }
-    }
-}
-
-#[derive(Debug)]
-pub struct ModuleAttr {
-    pub line: LineNum,
-    pub name: String,
-}
-impl_node!(ModuleAttr);
-impl ModuleAttr {
-    pub fn new(line: LineNum, name: String) -> Self {
-        ModuleAttr {
-            line: line,
-            name: name,
-        }
-    }
-}
-
-#[derive(Debug)]
-pub struct BehaviourAttr {
-    pub line: LineNum,
-    pub is_british: bool,
-    pub name: String,
-}
-impl_node!(BehaviourAttr);
-impl BehaviourAttr {
-    pub fn new(line: LineNum, name: String) -> Self {
-        BehaviourAttr {
-            line: line,
-            name: name,
-            is_british: true,
-        }
-    }
-    pub fn british(mut self, is_british: bool) -> Self {
-        self.is_british = is_british;
-        self
-    }
-}
-
-#[derive(Debug)]
-pub struct ExportAttr {
-    pub line: LineNum,
-    pub functions: Vec<Export>,
-}
-impl_node!(ExportAttr);
-impl ExportAttr {
-    pub fn new(line: LineNum, functions: Vec<Export>) -> Self {
-        ExportAttr {
-            line: line,
-            functions: functions,
-        }
-    }
-}
-
-#[derive(Debug)]
-pub struct ImportAttr {
-    pub line: LineNum,
-    pub module: String,
-    pub functions: Vec<Import>,
-}
-impl_node!(ImportAttr);
-impl ImportAttr {
-    pub fn new(line: LineNum, module: String, functions: Vec<Import>) -> Self {
-        ImportAttr {
-            line: line,
-            module: module,
-            functions: functions,
-        }
-    }
-}
-
-#[derive(Debug)]
-pub struct ExportTypeAttr {
-    pub line: LineNum,
-    pub types: Vec<ExportType>,
-}
-impl_node!(ExportTypeAttr);
-impl ExportTypeAttr {
-    pub fn new(line: LineNum, types: Vec<ExportType>) -> Self {
-        ExportTypeAttr {
-            line: line,
-            types: types,
-        }
-    }
-}
-
-#[derive(Debug)]
-pub struct CompileOptionsAttr {
-    pub line: LineNum,
-    pub options: eetf::Term,
-}
-impl_node!(CompileOptionsAttr);
-impl CompileOptionsAttr {
-    pub fn new(line: LineNum, options: eetf::Term) -> Self {
-        CompileOptionsAttr {
-            line: line,
-            options: options,
-        }
-    }
-}
-
-#[derive(Debug)]
-pub struct FileAttr {
-    pub line: LineNum,
-    pub original_file: String,
-    pub original_line: LineNum,
-}
-impl_node!(FileAttr);
-impl FileAttr {
-    pub fn new(line: LineNum, original_file: String, original_line: LineNum) -> Self {
-        FileAttr {
-            line: line,
-            original_file: original_file,
-            original_line: original_line,
-        }
-    }
-}
-
-#[derive(Debug)]
-pub struct RecordDecl {
-    pub line: LineNum,
-    pub name: String,
-    pub fields: Vec<RecordFieldDecl>,
-}
-impl_node!(RecordDecl);
-impl RecordDecl {
-    pub fn new(line: LineNum, name: String, fields: Vec<RecordFieldDecl>) -> Self {
-        RecordDecl {
-            line: line,
-            name: name,
-            fields: fields,
-        }
-    }
-}
-
-#[derive(Debug)]
-pub struct TypeDecl {
-    pub line: LineNum,
-    pub is_opaque: bool,
-    pub name: String,
-    pub variables: Vec<Variable>,
-    pub type_: Type,
-}
-impl_node!(TypeDecl);
-impl TypeDecl {
-    pub fn new(line: LineNum, name: String, variables: Vec<Variable>, type_: Type) -> Self {
-        TypeDecl {
-            line: line,
-            name: name,
-            variables: variables,
-            type_: type_,
-            is_opaque: false,
-        }
-    }
-    pub fn opaque(mut self, is_opaque: bool) -> Self {
-        self.is_opaque = is_opaque;
-        self
-    }
-}
-
-#[derive(Debug)]
-pub struct FunctionSpec {
-    pub line: LineNum,
-    pub module: Option<String>,
-    pub name: String,
-    pub types: Vec<FunctionType>,
-    pub is_callback: bool,
-}
-impl_node!(FunctionSpec);
-impl FunctionSpec {
-    pub fn new(line: LineNum, name: String, types: Vec<FunctionType>) -> Self {
-        FunctionSpec {
-            line: line,
-            module: None,
-            name: name,
-            types: types,
-            is_callback: false,
-        }
-    }
-    pub fn module(mut self, module: String) -> Self {
-        self.module = Some(module);
-        self
-    }
-    pub fn callback(mut self, is_callback: bool) -> Self {
-        self.is_callback = is_callback;
-        self
-    }
-}
-
-#[derive(Debug)]
-pub struct WildAttr {
-    pub line: LineNum,
-    pub name: String,
-    pub value: eetf::Term,
-}
-impl_node!(WildAttr);
-impl WildAttr {
-    pub fn new(line: LineNum, name: String, value: eetf::Term) -> Self {
-        WildAttr {
-            line: line,
-            name: name,
-            value: value,
-        }
-    }
-}
-
-#[derive(Debug)]
-pub struct FunctionDecl {
-    pub line: LineNum,
-    pub name: String,
-    pub clauses: Vec<Clause>,
-}
-impl_node!(FunctionDecl);
-impl FunctionDecl {
-    pub fn new(line: LineNum, name: String, clauses: Vec<Clause>) -> Self {
-        FunctionDecl {
-            line: line,
-            name: name,
-            clauses: clauses,
-        }
-    }
-}
-
-#[derive(Debug)]
-pub struct RecordFieldDecl {
-    pub line: LineNum,
-    pub name: String,
-    pub type_: Type,
-    pub default_value: Expression,
-}
-impl_node!(RecordFieldDecl);
-impl RecordFieldDecl {
-    pub fn new(line: LineNum, name: String) -> Self {
-        RecordFieldDecl {
-            line: line,
-            name: name,
-            type_: Type::any(line),
-            default_value: Expression::atom(line, "undefined".to_string()),
-        }
-    }
-    pub fn type_(mut self, type_: Type) -> Self {
-        self.type_ = type_;
-        self
-    }
-    pub fn default_value(mut self, value: Expression) -> Self {
-        self.default_value = value;
-        self
-    }
-}
 
 // 6.2 Atomic Literals
 #[derive(Debug)]
@@ -1449,47 +1150,5 @@ impl Variable {
     }
     pub fn is_anonymous(&self) -> bool {
         self.name == "_"
-    }
-}
-
-#[derive(Debug)]
-pub struct Export {
-    pub function: String,
-    pub arity: Arity,
-}
-impl Export {
-    pub fn new(function: String, arity: Arity) -> Self {
-        Export {
-            function: function,
-            arity: arity,
-        }
-    }
-}
-
-#[derive(Debug)]
-pub struct Import {
-    pub function: String,
-    pub arity: Arity,
-}
-impl Import {
-    pub fn new(function: String, arity: Arity) -> Self {
-        Import {
-            function: function,
-            arity: arity,
-        }
-    }
-}
-
-#[derive(Debug)]
-pub struct ExportType {
-    pub type_: String,
-    pub arity: Arity,
-}
-impl ExportType {
-    pub fn new(type_: String, arity: Arity) -> Self {
-        ExportType {
-            type_: type_,
-            arity: arity,
-        }
     }
 }
