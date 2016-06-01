@@ -20,6 +20,7 @@ macro_rules! impl_node {
 
 pub mod form;
 pub mod literal;
+pub mod pattern;
 pub mod type_;
 pub mod expr;
 
@@ -58,43 +59,7 @@ pub type CharLit = self::literal::Char;
 pub type StringLit = self::literal::Str;
 pub type IntegerLit = self::literal::Integer;
 pub type FloatLit = self::literal::Float;
-
-// 6.3 Patterns
-#[derive(Debug)]
-pub enum Pattern {
-    Integer(Box<IntegerLit>),
-    Float(Box<FloatLit>),
-    String(Box<StringLit>),
-    Char(Box<CharLit>),
-    Atom(Box<AtomLit>),
-    Var(Box<Variable>),
-    Match(Box<Match<Pattern, Pattern>>),
-    Tuple(Box<Tuple<Pattern>>),
-    Nil(Box<Nil>),
-    Cons(Box<Cons<Pattern>>),
-    Binary(Box<Binary<Pattern>>),
-    UnaryOp(Box<UnaryOp<Pattern>>),
-    BinaryOp(Box<BinaryOp<Pattern>>),
-    Record(Box<Record<Pattern>>),
-    RecordIndex(Box<RecordIndex<Pattern>>),
-    Map(Box<Map<Pattern>>),
-}
-impl_from!(Pattern::Integer(IntegerLit));
-impl_from!(Pattern::Float(FloatLit));
-impl_from!(Pattern::String(StringLit));
-impl_from!(Pattern::Char(CharLit));
-impl_from!(Pattern::Atom(AtomLit));
-impl_from!(Pattern::Var(Variable));
-impl_from!(Pattern::Match(Match<Pattern, Pattern>));
-impl_from!(Pattern::Tuple(Tuple<Pattern>));
-impl_from!(Pattern::Nil(Nil));
-impl_from!(Pattern::Cons(Cons<Pattern>));
-impl_from!(Pattern::Binary(Binary<Pattern>));
-impl_from!(Pattern::UnaryOp(UnaryOp<Pattern>));
-impl_from!(Pattern::BinaryOp(BinaryOp<Pattern>));
-impl_from!(Pattern::Record(Record<Pattern>));
-impl_from!(Pattern::RecordIndex(RecordIndex<Pattern>));
-impl_from!(Pattern::Map(Map<Pattern>));
+pub type Pattern = self::pattern::Pattern;
 
 #[derive(Debug)]
 pub struct Match<L, R> {
