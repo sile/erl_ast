@@ -3,7 +3,6 @@ extern crate eetf;
 extern crate num;
 
 pub mod ast;
-pub mod ast2;
 pub mod result;
 pub mod error;
 

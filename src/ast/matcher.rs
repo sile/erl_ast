@@ -21,30 +21,6 @@ pub trait Pattern<'a> {
     }
 }
 
-// macro_rules! try_match {
-//     ($pattern:expr, $value:expr) => (
-//         match $pattern.do_match($value) {
-//             None => return None,
-//             Some(v) => v
-//         }
-//     )
-// }
-
-// pub struct Or<'a, P: 'static>(pub &'a [P]);
-// impl<'a, P> Pattern<'a> for Or<'a, P>
-//     where P: Pattern<'a>
-// {
-//     type Value = P::Value;
-//     fn do_match(&self, term: &'a eetf::Term) -> Option<Self::Value> {
-//         for p in self.0 {
-//             if let Some(v) = p.do_match(term) {
-//                 return Some(v);
-//             }
-//         }
-//         None
-//     }
-// }
-
 pub struct Either<L, R>(pub L, pub R);
 impl<'a, L, R> Pattern<'a> for Either<L, R>
     where L: Pattern<'a>,
@@ -152,20 +128,6 @@ impl<'a, P0, P1, P2, P3, P4, P5> Pattern<'a> for (P0, P1, P2, P3, P4, P5)
     }
 }
 
-pub struct List1<P0>(pub P0);
-impl<'a, P0> Pattern<'a> for List1<P0>
-    where P0: Pattern<'a>
-{
-    type Value = P0::Value;
-    fn try_match(&self, term: &'a eetf::Term) -> Result<Self::Value, Option<&'a eetf::Term>> {
-        term.as_list().ok_or(None).and_then(|l| if l.elements.len() == 1 {
-            self.0.try_match(&l.elements[0])
-        } else {
-            Err(None)
-        })
-    }
-}
-
 pub struct List2<P0, P1>(pub P0, pub P1);
 impl<'a, P0, P1> Pattern<'a> for List2<P0, P1>
     where P0: Pattern<'a>,
@@ -199,21 +161,6 @@ impl<'a, P0, P1, P2> Pattern<'a> for List3<P0, P1, P2>
     }
 }
 
-pub struct Cons<P0>(pub P0);
-impl<'a, P0> Pattern<'a> for Cons<P0>
-    where P0: Pattern<'a>
-{
-    type Value = (P0::Value, &'a [eetf::Term]);
-    fn try_match(&self, term: &'a eetf::Term) -> Result<Self::Value, Option<&'a eetf::Term>> {
-        term.as_list().ok_or(None).and_then(|l| if !l.elements.is_empty() {
-            let head = &l.elements[0];
-            Ok((try!(self.0.try_match(head)), &l.elements[1..]))
-        } else {
-            Err(None)
-        })
-    }
-}
-
 pub struct Nil;
 impl<'a> Pattern<'a> for Nil {
     type Value = &'a [eetf::Term];
@@ -234,14 +181,6 @@ impl<'a> Pattern<'a> for &'static str {
         } else {
             None
         })
-    }
-}
-
-pub struct AnyList;
-impl<'a> Pattern<'a> for AnyList {
-    type Value = &'a [eetf::Term];
-    fn do_match(&self, term: &'a eetf::Term) -> Option<Self::Value> {
-        term.as_list().map(|l| &l.elements[..])
     }
 }
 
@@ -300,14 +239,6 @@ impl<'a> Pattern<'a> for I32 {
     type Value = i32;
     fn do_match(&self, term: &'a eetf::Term) -> Option<Self::Value> {
         term.as_fix_integer().map(|i| i.value)
-    }
-}
-
-pub struct I64;
-impl<'a> Pattern<'a> for I64 {
-    type Value = i64;
-    fn do_match(&self, term: &'a eetf::Term) -> Option<Self::Value> {
-        term.as_fix_integer().map(|i| i.value as Self::Value)
     }
 }
 

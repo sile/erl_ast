@@ -2,6 +2,7 @@ use eetf;
 use num::bigint::BigInt;
 
 pub mod codec;
+mod matcher;
 
 use std::path::Path;
 use std::convert::From;
