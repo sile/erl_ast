@@ -22,6 +22,7 @@ pub mod form;
 pub mod literal;
 pub mod pattern;
 pub mod expr;
+pub mod clause;
 
 pub mod type_;
 pub mod codec;
@@ -70,6 +71,7 @@ pub type Receive = expr::Receive;
 pub type AnonymousFun = expr::AnonymousFun;
 pub type Qualifier = expr::Qualifier;
 pub type Comprehension = expr::Comprehension;
+pub type Clause = clause::Clause;
 
 // TODO: Move to common module
 #[derive(Debug)]
@@ -396,30 +398,6 @@ impl ExternalFun {
             module: module,
             function: function,
             arity: arity,
-        }
-    }
-}
-
-// 6.5 Clauses
-#[derive(Debug)]
-pub struct Clause {
-    pub line: LineNum,
-    pub patterns: Vec<Pattern>,
-    pub guards: Vec<OrGuard>,
-    pub body: Vec<Expression>,
-}
-impl_node!(Clause);
-impl Clause {
-    pub fn new(line: LineNum,
-               patterns: Vec<Pattern>,
-               guards: Vec<OrGuard>,
-               body: Vec<Expression>)
-               -> Self {
-        Clause {
-            line: line,
-            patterns: patterns,
-            guards: guards,
-            body: body,
         }
     }
 }
