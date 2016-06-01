@@ -1,6 +1,6 @@
 //! Clauses
 //!
-//! See: [6.5 clauses](http://erlang.org/doc/apps/erts/absform.html#id88135)
+//! See: [6.5 Clauses](http://erlang.org/doc/apps/erts/absform.html#id88135)
 use ast;
 use ast::LineNum;
 

@@ -23,6 +23,7 @@ pub mod literal;
 pub mod pattern;
 pub mod expr;
 pub mod clause;
+pub mod guard;
 
 pub mod type_;
 pub mod codec;
@@ -72,6 +73,8 @@ pub type AnonymousFun = expr::AnonymousFun;
 pub type Qualifier = expr::Qualifier;
 pub type Comprehension = expr::Comprehension;
 pub type Clause = clause::Clause;
+pub type OrGuard = guard::OrGuard;
+pub type Guard = guard::Guard;
 
 // TODO: Move to common module
 #[derive(Debug)]
@@ -401,53 +404,6 @@ impl ExternalFun {
         }
     }
 }
-
-// 6.6 Guards
-#[derive(Debug)]
-pub struct OrGuard {
-    and_guards: Vec<Guard>,
-}
-impl OrGuard {
-    pub fn new(and_guards: Vec<Guard>) -> Self {
-        OrGuard { and_guards: and_guards }
-    }
-}
-
-#[derive(Debug)]
-pub enum Guard {
-    Integer(Box<IntegerLit>),
-    Float(Box<FloatLit>),
-    String(Box<StringLit>),
-    Char(Box<CharLit>),
-    Atom(Box<AtomLit>),
-    Var(Box<Variable>),
-    Tuple(Box<Tuple<Guard>>),
-    Nil(Box<Nil>),
-    Cons(Box<Cons<Guard>>),
-    Binary(Box<Binary<Guard>>),
-    UnaryOp(Box<UnaryOp<Guard>>),
-    BinaryOp(Box<BinaryOp<Guard>>),
-    Record(Box<Record<Guard>>),
-    RecordIndex(Box<RecordIndex<Guard>>),
-    LocalCall(Box<LocalCall<Guard>>),
-    RemoteCall(Box<RemoteCall<Guard>>),
-}
-impl_from!(Guard::Integer(IntegerLit));
-impl_from!(Guard::Float(FloatLit));
-impl_from!(Guard::String(StringLit));
-impl_from!(Guard::Char(CharLit));
-impl_from!(Guard::Atom(AtomLit));
-impl_from!(Guard::Var(Variable));
-impl_from!(Guard::Tuple(Tuple<Guard>));
-impl_from!(Guard::Nil(Nil));
-impl_from!(Guard::Cons(Cons<Guard>));
-impl_from!(Guard::Binary(Binary<Guard>));
-impl_from!(Guard::UnaryOp(UnaryOp<Guard>));
-impl_from!(Guard::BinaryOp(BinaryOp<Guard>));
-impl_from!(Guard::Record(Record<Guard>));
-impl_from!(Guard::RecordIndex(RecordIndex<Guard>));
-impl_from!(Guard::LocalCall(LocalCall<Guard>));
-impl_from!(Guard::RemoteCall(RemoteCall<Guard>));
 
 // 6.7 Types
 #[derive(Debug)]
