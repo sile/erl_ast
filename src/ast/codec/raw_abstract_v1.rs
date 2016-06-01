@@ -222,17 +222,17 @@ impl FromTerm for ast::Comprehension {
 }
 impl FromTerm for ast::Qualifier {
     fn from(term: &eetf::Term) -> Option<Self> {
-        use ast::Qualifier::*;
+        use ast::expr::Qualifier::*;
         None.or_else(|| {
                 ("generate", I32, to!(ast::Pattern), to!(ast::Expression))
                     .map_match(term, |(_, line, pattern, expr)| {
-                        Generator(ast::Generator::new(line, pattern, expr))
+                        Generator(ast::expr::Generator::new(line, pattern, expr))
                     })
             })
             .or_else(|| {
                 ("b_generate", I32, to!(ast::Pattern), to!(ast::Expression))
                     .map_match(term, |(_, line, pattern, expr)| {
-                        BitStringGenerator(ast::Generator::new(line, pattern, expr))
+                        BitStringGenerator(ast::expr::Generator::new(line, pattern, expr))
                     })
             })
             .or_else(|| to!(ast::Expression).map_match(term, |expr| Filter(expr)))

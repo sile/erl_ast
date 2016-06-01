@@ -21,9 +21,9 @@ macro_rules! impl_node {
 pub mod form;
 pub mod literal;
 pub mod pattern;
-pub mod type_;
 pub mod expr;
 
+pub mod type_;
 pub mod codec;
 pub mod matcher;
 
@@ -54,13 +54,24 @@ pub trait Node {
 }
 
 // TODO: delete
-pub type AtomLit = self::literal::Atom;
-pub type CharLit = self::literal::Char;
-pub type StringLit = self::literal::Str;
-pub type IntegerLit = self::literal::Integer;
-pub type FloatLit = self::literal::Float;
-pub type Pattern = self::pattern::Pattern;
+pub type AtomLit = literal::Atom;
+pub type CharLit = literal::Char;
+pub type StringLit = literal::Str;
+pub type IntegerLit = literal::Integer;
+pub type FloatLit = literal::Float;
+pub type Pattern = pattern::Pattern;
+pub type Expression = expr::Expression;
+pub type Catch = expr::Catch;
+pub type Case = expr::Case;
+pub type Block = expr::Block;
+pub type If = expr::If;
+pub type Try = expr::Try;
+pub type Receive = expr::Receive;
+pub type AnonymousFun = expr::AnonymousFun;
+pub type Qualifier = expr::Qualifier;
+pub type Comprehension = expr::Comprehension;
 
+// TODO: Move to common module
 #[derive(Debug)]
 pub struct Match<L, R> {
     pub line: LineNum,
@@ -317,87 +328,6 @@ impl<T> MapPair<T> {
     }
 }
 
-// 6.4 Expressions
-#[derive(Debug)]
-pub enum Expression {
-    Integer(Box<IntegerLit>),
-    Float(Box<FloatLit>),
-    String(Box<StringLit>),
-    Char(Box<CharLit>),
-    Atom(Box<AtomLit>),
-    Match(Box<Match<Pattern, Expression>>),
-    Var(Box<Variable>),
-    Tuple(Box<Tuple<Expression>>),
-    Nil(Box<Nil>),
-    Cons(Box<Cons<Expression>>),
-    Binary(Binary<Expression>),
-    UnaryOp(Box<UnaryOp<Expression>>),
-    BinaryOp(Box<BinaryOp<Expression>>),
-    Record(Box<Record<Expression>>),
-    RecordIndex(Box<RecordIndex<Expression>>),
-    Map(Box<Map<Expression>>),
-    Catch(Box<Catch>),
-    LocalCall(Box<LocalCall<Expression>>),
-    RemoteCall(Box<RemoteCall<Expression>>),
-    Comprehension(Box<Comprehension>),
-    Block(Box<Block>),
-    If(Box<If>),
-    Case(Box<Case>),
-    Try(Box<Try>),
-    Receive(Box<Receive>),
-    InternalFun(Box<InternalFun>),
-    ExternalFun(Box<ExternalFun>),
-    AnonymousFun(Box<AnonymousFun>),
-}
-impl_from!(Expression::Integer(IntegerLit));
-impl_from!(Expression::Float(FloatLit));
-impl_from!(Expression::String(StringLit));
-impl_from!(Expression::Char(CharLit));
-impl_from!(Expression::Atom(AtomLit));
-impl_from!(Expression::Match(Match<Pattern, Expression>));
-impl_from!(Expression::Var(Variable));
-impl_from!(Expression::Tuple(Tuple<Expression>));
-impl_from!(Expression::Nil(Nil));
-impl_from!(Expression::Cons(Cons<Expression>));
-impl_from!(Expression::Binary(Binary<Expression>));
-impl_from!(Expression::UnaryOp(UnaryOp<Expression>));
-impl_from!(Expression::BinaryOp(BinaryOp<Expression>));
-impl_from!(Expression::Record(Record<Expression>));
-impl_from!(Expression::RecordIndex(RecordIndex<Expression>));
-impl_from!(Expression::Map(Map<Expression>));
-impl_from!(Expression::Catch(Catch));
-impl_from!(Expression::LocalCall(LocalCall<Expression>));
-impl_from!(Expression::RemoteCall(RemoteCall<Expression>));
-impl_from!(Expression::Comprehension(Comprehension));
-impl_from!(Expression::Block(Block));
-impl_from!(Expression::If(If));
-impl_from!(Expression::Case(Case));
-impl_from!(Expression::Try(Try));
-impl_from!(Expression::Receive(Receive));
-impl_from!(Expression::InternalFun(InternalFun));
-impl_from!(Expression::ExternalFun(ExternalFun));
-impl_from!(Expression::AnonymousFun(AnonymousFun));
-impl Expression {
-    pub fn atom(line: LineNum, name: String) -> Self {
-        Expression::Atom(Box::new(AtomLit::new(line, name)))
-    }
-}
-
-#[derive(Debug)]
-pub struct Catch {
-    pub line: LineNum,
-    pub expr: Expression,
-}
-impl_node!(Catch);
-impl Catch {
-    pub fn new(line: LineNum, expr: Expression) -> Self {
-        Catch {
-            line: line,
-            expr: expr,
-        }
-    }
-}
-
 #[derive(Debug)]
 pub struct LocalCall<T> {
     pub line: LineNum,
@@ -435,149 +365,6 @@ impl<T> RemoteCall<T> {
 }
 
 #[derive(Debug)]
-pub struct Comprehension {
-    pub line: LineNum,
-    pub is_list: bool,
-    pub expr: Expression,
-    pub qualifiers: Vec<Qualifier>,
-}
-impl_node!(Comprehension);
-impl Comprehension {
-    pub fn new(line: LineNum, is_list: bool, expr: Expression, qualifiers: Vec<Qualifier>) -> Self {
-        Comprehension {
-            line: line,
-            is_list: is_list,
-            expr: expr,
-            qualifiers: qualifiers,
-        }
-    }
-}
-
-#[derive(Debug)]
-pub enum Qualifier {
-    Generator(Generator),
-    BitStringGenerator(Generator),
-    Filter(Expression),
-}
-
-#[derive(Debug)]
-pub struct Generator {
-    pub line: LineNum,
-    pub pattern: Pattern,
-    pub expr: Expression,
-}
-impl_node!(Generator);
-impl Generator {
-    pub fn new(line: LineNum, pattern: Pattern, expr: Expression) -> Self {
-        Generator {
-            line: line,
-            pattern: pattern,
-            expr: expr,
-        }
-    }
-}
-
-#[derive(Debug)]
-pub struct Block {
-    pub line: LineNum,
-    pub body: Vec<Expression>,
-}
-impl_node!(Block);
-impl Block {
-    pub fn new(line: LineNum, body: Vec<Expression>) -> Self {
-        Block {
-            line: line,
-            body: body,
-        }
-    }
-}
-
-#[derive(Debug)]
-pub struct If {
-    pub line: LineNum,
-    pub clauses: Vec<Clause>,
-}
-impl_node!(If);
-impl If {
-    pub fn new(line: LineNum, clauses: Vec<Clause>) -> Self {
-        If {
-            line: line,
-            clauses: clauses,
-        }
-    }
-}
-
-#[derive(Debug)]
-pub struct Case {
-    pub line: LineNum,
-    pub expr: Expression,
-    pub clauses: Vec<Clause>,
-}
-impl_node!(Case);
-impl Case {
-    pub fn new(line: LineNum, expr: Expression, clauses: Vec<Clause>) -> Self {
-        Case {
-            line: line,
-            expr: expr,
-            clauses: clauses,
-        }
-    }
-}
-
-#[derive(Debug)]
-pub struct Try {
-    pub line: LineNum,
-    pub body: Vec<Expression>,
-    pub case_clauses: Vec<Clause>,
-    pub catch_clauses: Vec<Clause>,
-    pub after: Vec<Expression>,
-}
-impl_node!(Try);
-impl Try {
-    pub fn new(line: LineNum,
-               body: Vec<Expression>,
-               case_clauses: Vec<Clause>,
-               catch_clauses: Vec<Clause>,
-               after: Vec<Expression>)
-               -> Self {
-        Try {
-            line: line,
-            body: body,
-            case_clauses: case_clauses,
-            catch_clauses: catch_clauses,
-            after: after,
-        }
-    }
-}
-
-#[derive(Debug)]
-pub struct Receive {
-    pub line: LineNum,
-    pub clauses: Vec<Clause>,
-    pub timeout: Option<Expression>,
-    pub after: Vec<Expression>,
-}
-impl_node!(Receive);
-impl Receive {
-    pub fn new(line: LineNum, clauses: Vec<Clause>) -> Self {
-        Receive {
-            line: line,
-            clauses: clauses,
-            timeout: None,
-            after: Vec::new(),
-        }
-    }
-    pub fn timeout(mut self, timeout: Expression) -> Self {
-        self.timeout = Some(timeout);
-        self
-    }
-    pub fn after(mut self, after: Vec<Expression>) -> Self {
-        self.after = after;
-        self
-    }
-}
-
-#[derive(Debug)]
 pub struct InternalFun {
     pub line: LineNum,
     pub function: String,
@@ -610,27 +397,6 @@ impl ExternalFun {
             function: function,
             arity: arity,
         }
-    }
-}
-
-#[derive(Debug)]
-pub struct AnonymousFun {
-    pub line: LineNum,
-    pub name: Option<String>,
-    pub clauses: Vec<Clause>,
-}
-impl_node!(AnonymousFun);
-impl AnonymousFun {
-    pub fn new(line: LineNum, clauses: Vec<Clause>) -> Self {
-        AnonymousFun {
-            line: line,
-            name: None,
-            clauses: clauses,
-        }
-    }
-    pub fn name(mut self, name: String) -> Self {
-        self.name = Some(name);
-        self
     }
 }
 
