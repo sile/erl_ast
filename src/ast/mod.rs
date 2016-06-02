@@ -27,7 +27,6 @@ pub mod guard;
 pub mod typ;
 pub mod common;
 
-pub mod codec;
 pub mod matcher;
 
 pub type LineNum = i32;

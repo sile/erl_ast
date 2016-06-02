@@ -4,11 +4,11 @@
 use std::path::Path;
 use eetf;
 use result::BeamParseResult;
-use ast;
 use ast::LineNum;
 use ast::Arity;
 use ast::typ;
 use ast::expr;
+use format;
 
 #[derive(Debug)]
 pub struct ModuleDecl {
@@ -16,7 +16,7 @@ pub struct ModuleDecl {
 }
 impl ModuleDecl {
     pub fn from_beam_file<P: AsRef<Path>>(path: P) -> BeamParseResult<Self> {
-        let code = try!(ast::codec::raw_abstract_v1::AbstractCode::from_beam_file(path));
+        let code = try!(format::raw_abstract_v1::AbstractCode::from_beam_file(path));
         code.to_module_decl()
     }
 }
