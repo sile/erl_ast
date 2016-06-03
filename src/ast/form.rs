@@ -3,7 +3,7 @@
 //! See: [6.1 Module Declarations and Forms](http://erlang.org/doc/apps/erts/absform.html#id86691)
 use std::path::Path;
 use eetf;
-use result::BeamParseResult;
+use result::FromBeamResult;
 use ast::LineNum;
 use ast::Arity;
 use ast::typ;
@@ -15,7 +15,7 @@ pub struct ModuleDecl {
     pub forms: Vec<Form>,
 }
 impl ModuleDecl {
-    pub fn from_beam_file<P: AsRef<Path>>(path: P) -> BeamParseResult<Self> {
+    pub fn from_beam_file<P: AsRef<Path>>(path: P) -> FromBeamResult<Self> {
         let code = try!(format::raw_abstract_v1::AbstractCode::from_beam_file(path));
         code.to_module_decl()
     }

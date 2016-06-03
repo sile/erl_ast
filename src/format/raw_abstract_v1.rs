@@ -9,8 +9,8 @@ use eetf::pattern::Pattern;
 use eetf::pattern::{VarList, FixList, I32, U32, U64, F64, Int, Nil, Or, Union2, Union3, Str, Ascii};
 use eetf::pattern::{Unmatch, Cons, Unicode};
 use eetf::pattern;
-use result::BeamParseResult;
-use error::BeamParseError;
+use result::FromBeamResult;
+use error::FromBeamError;
 use ast;
 use ast::literal;
 use ast::expr;
@@ -29,16 +29,16 @@ pub struct AbstractCode {
     pub code: eetf::Term,
 }
 impl AbstractCode {
-    pub fn from_beam_file<P: AsRef<Path>>(path: P) -> BeamParseResult<Self> {
+    pub fn from_beam_file<P: AsRef<Path>>(path: P) -> FromBeamResult<Self> {
         let beam = try!(beam_file::RawBeamFile::from_file(path));
         let chunk = try!(beam.chunks
             .into_iter()
             .find(|c| c.id() == b"Abst")
-            .ok_or(BeamParseError::NoDebugInfo));
+            .ok_or(FromBeamError::NoDebugInfo));
         let code = try!(eetf::Term::decode(io::Cursor::new(&chunk.data)));
         Ok(AbstractCode { code: code })
     }
-    pub fn to_module_decl(&self) -> BeamParseResult<ast::form::ModuleDecl> {
+    pub fn to_module_decl(&self) -> FromBeamResult<ast::form::ModuleDecl> {
         let (_, forms) = try!(self.code
             .as_match(("raw_abstract_v1", VarList(to!(ast::form::Form)))));
         Ok(ast::form::ModuleDecl { forms: forms })

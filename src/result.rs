@@ -1,3 +1,3 @@
 use error;
 
-pub type BeamParseResult<T> = Result<T, error::BeamParseError>;
+pub type FromBeamResult<T> = Result<T, error::FromBeamError>;
