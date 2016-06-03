@@ -1,6 +1,18 @@
-//! A Rust representation of Abstract Syntax Trees of Erlang modules
+//! A Rust representation of Abstract Syntax Trees of Erlang modules.
 //!
-//! See: [The Abstract Format](http://erlang.org/doc/apps/erts/absform.html)
+//! Currently the library provide only a functionality that
+//! loading ASTs from beam files which have debug infos.
+//!
+//! See also: [The Abstract Format](http://erlang.org/doc/apps/erts/absform.html)
+//!
+//! # Examples
+//!
+//! ```
+//! use erl_ast::AST;
+//!
+//! let ast = AST::from_beam_file("src/testdata/test.beam").unwrap();
+//! println!("{:?}", ast);
+//! ```
 extern crate beam_file;
 extern crate eetf;
 extern crate num;
