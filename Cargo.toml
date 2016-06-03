@@ -1,7 +1,14 @@
 [package]
 name = "erl_ast"
-version = "0.1.0"
+version = "0.0.1"
 authors = ["Takeru Ohta <phjgt308@gmail.com>"]
+description = "A Rust representation of Abstract Syntax Trees of Erlang modules"
+documentation = "http://sile.github.io/rustdocs/erl_ast/erl_ast/"
+homepage = "https://github.com/sile/erl_ast"
+repository = "https://github.com/sile/erl_ast"
+readme = "README.md"
+keywords = ["erlang"]
+license = "MIT"
 
 [dependencies]
 beam_file = "0.2"
