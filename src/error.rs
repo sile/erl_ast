@@ -11,10 +11,8 @@ pub enum BeamParseError {
     BeamFile(beam_file::Error),
     TermDecode(eetf::DecodeError),
     NoDebugInfo,
-    UnknownAbstractFormat,
-    NoFileAttribute,
     NoModuleAttribute,
-    UnexpectedTerm(eetf::Term),
+    UnexpectedTerm(Vec<Unmatched>),
 }
 impl error::Error for BeamParseError {
     fn description(&self) -> &str {
@@ -23,8 +21,6 @@ impl error::Error for BeamParseError {
             BeamParseError::BeamFile(ref x) => x.description(),
             BeamParseError::TermDecode(ref x) => x.description(),
             BeamParseError::NoDebugInfo => "No debug information",
-            BeamParseError::UnknownAbstractFormat => "Unknown abstract format",
-            BeamParseError::NoFileAttribute => "No file attribute",
             BeamParseError::NoModuleAttribute => "No module attribute",
             BeamParseError::UnexpectedTerm(_) => "Unexpected term",
         }
@@ -45,10 +41,22 @@ impl fmt::Display for BeamParseError {
             BeamParseError::BeamFile(ref x) => x.fmt(f),
             BeamParseError::TermDecode(ref x) => x.fmt(f),
             BeamParseError::NoDebugInfo => write!(f, "The beam has no debug information"),
-            BeamParseError::UnknownAbstractFormat => write!(f, "Unknown abstract format"),
-            BeamParseError::NoFileAttribute => write!(f, "No file attribute"),
             BeamParseError::NoModuleAttribute => write!(f, "No module attribute"),
-            BeamParseError::UnexpectedTerm(ref t) => write!(f, "Unexpected term: {}", t),
+            BeamParseError::UnexpectedTerm(ref trace) => {
+                try!(write!(f, "Unexpected term: ["));
+                let limit = 3;
+                for (i, e) in trace.iter().take(limit).enumerate() {
+                    if i != 0 {
+                        try!(write!(f, ","));
+                    }
+                    try!(write!(f, "{}", e));
+                }
+                if trace.len() > limit {
+                    try!(write!(f, " ..{}..", trace.len() - limit));
+                }
+                try!(write!(f, "]"));
+                Ok(())
+            }
         }
     }
 }
@@ -65,5 +73,32 @@ impl convert::From<beam_file::Error> for BeamParseError {
 impl convert::From<eetf::DecodeError> for BeamParseError {
     fn from(x: eetf::DecodeError) -> Self {
         BeamParseError::TermDecode(x)
+    }
+}
+impl<'a> convert::From<eetf::pattern::Unmatch<'a>> for BeamParseError {
+    fn from(x: eetf::pattern::Unmatch<'a>) -> Self {
+        use std::ops::Deref;
+        let mut trace = Vec::new();
+        let mut curr = Some(&x);
+        while let Some(x) = curr {
+            trace.push(Unmatched {
+                value: x.input.clone(),
+                pattern: format!("{:?}", x.pattern),
+            });
+            curr = x.cause.as_ref().map(|x| x.deref());
+        }
+        trace.reverse();
+        BeamParseError::UnexpectedTerm(trace)
+    }
+}
+
+#[derive(Debug)]
+pub struct Unmatched {
+    pub value: eetf::Term,
+    pub pattern: String,
+}
+impl fmt::Display for Unmatched {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "{{pattern:{}, value:{}}}", self.pattern, self.value)
     }
 }

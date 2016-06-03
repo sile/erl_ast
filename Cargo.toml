@@ -5,5 +5,5 @@ authors = ["Takeru Ohta <phjgt308@gmail.com>"]
 
 [dependencies]
 beam_file = "0.2"
-eetf = "0.2"
+eetf = "0.3.3"
 num = "0.1"

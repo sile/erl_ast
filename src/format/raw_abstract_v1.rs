@@ -1,13 +1,23 @@
+use std::fmt::Debug;
+use std::marker::PhantomData;
 use std::path::Path;
 use std::io;
 use beam_file;
 use beam_file::chunk::Chunk;
 use eetf;
+use eetf::pattern::Pattern;
+use eetf::pattern::{VarList, FixList, I32, U32, U64, F64, Int, Nil, Or, Union2, Union3, Str, Ascii};
+use eetf::pattern::{Unmatch, Cons, Unicode};
+use eetf::pattern;
 use result::BeamParseResult;
 use error::BeamParseError;
 use ast;
-use ast::matcher::{Pattern, Either};
-use ast::matcher::{U32, I32, U64, F64, Atom, List, List2, List3, Str, Term, Nil, Int};
+
+macro_rules! to{
+    ($to:ty) => {
+        To::<$to>(PhantomData)
+    }
+}
 
 pub struct AbstractCode {
     pub code: eetf::Term,
@@ -23,739 +33,722 @@ impl AbstractCode {
         Ok(AbstractCode { code: code })
     }
     pub fn to_module_decl(&self) -> BeamParseResult<ast::form::ModuleDecl> {
-        let (_, forms) = try!(("raw_abstract_v1", List(to::<ast::form::Form>()))
-            .try_match(&self.code)
-            .map_err(|term| BeamParseError::UnexpectedTerm(term.unwrap().clone())));
+        let (_, forms) = try!(self.code
+            .as_match(("raw_abstract_v1", VarList(to!(ast::form::Form)))));
         Ok(ast::form::ModuleDecl { forms: forms })
     }
 }
 
-pub trait FromTerm {
-    fn try_from(term: &eetf::Term) -> Result<Self, Option<&eetf::Term>>
-        where Self: Sized
-    {
-        Self::from(term).ok_or(None)
-    }
-    fn from(term: &eetf::Term) -> Option<Self>
-        where Self: Sized
-    {
-        Self::try_from(term).ok()
-    }
+pub trait FromTerm<'a> {
+    fn try_from(term: &'a eetf::Term) -> Result<Self, Unmatch<'a>> where Self: Sized;
 }
 
-use std::marker::PhantomData;
+#[derive(Debug)]
 struct To<T>(PhantomData<T>);
-fn to<T>() -> To<T> {
-    To(PhantomData)
+impl<T> Clone for To<T> {
+    fn clone(&self) -> Self {
+        To(PhantomData)
+    }
 }
 impl<'a, F> Pattern<'a> for To<F>
-    where F: FromTerm
+    where F: FromTerm<'a> + Debug + 'static
 {
-    type Value = F;
-    fn try_match(&self, term: &'a eetf::Term) -> Result<Self::Value, Option<&'a eetf::Term>> {
-        F::try_from(term)
-    }
-}
-macro_rules! to{
-    ($to:ty) => {
-        to::<$to>()
+    type Output = F;
+    fn try_match(&self, term: &'a eetf::Term) -> pattern::Result<'a, Self::Output> {
+        F::try_from(term).map_err(|e| self.unmatched(term).cause(e))
     }
 }
 
-macro_rules! try_from {
-    ($term:expr, $from:ty) => {
-            match to!($from).try_match($term).map(::std::convert::From::from) {
-                Ok(value) => return Ok(value),
-                Err(None) => {},
-                Err(Some(unmatched)) => return Err(Some(unmatched))
-            }
+pub fn atom() -> eetf::pattern::Any<eetf::Atom> {
+    eetf::pattern::any()
+}
+pub fn any() -> eetf::pattern::Any<eetf::Term> {
+    eetf::pattern::any()
+}
+
+macro_rules! return_if_ok {
+    ($e:expr) => {
+        match $e {
+            Ok(value) => return Ok(::std::convert::From::from(value)),
+            Err(err) => err,
         }
+    }
 }
 
-impl FromTerm for ast::form::Form {
-    fn try_from(term: &eetf::Term) -> Result<Self, Option<&eetf::Term>> {
-        try_from!(term, ast::form::ModuleAttr);
-        try_from!(term, ast::form::FileAttr);
-        try_from!(term, ast::form::BehaviourAttr);
-        try_from!(term, ast::form::ExportAttr);
-        try_from!(term, ast::form::ImportAttr);
-        try_from!(term, ast::form::ExportTypeAttr);
-        try_from!(term, ast::form::CompileOptionsAttr);
-        try_from!(term, ast::form::RecordDecl);
-        try_from!(term, ast::form::TypeDecl);
-        try_from!(term, ast::form::FunSpec);
-        try_from!(term, ast::form::FunDecl);
-        try_from!(term, ast::form::WildAttr);
-        try_from!(term, ast::form::Eof);
-        Err(Some(term))
+impl<'a> FromTerm<'a> for ast::form::Form {
+    fn try_from(term: &'a eetf::Term) -> Result<Self, Unmatch<'a>> {
+        let e = return_if_ok!(term.as_match(to!(ast::form::ModuleAttr)));
+        let e = return_if_ok!(term.as_match(to!(ast::form::ModuleAttr))).max_depth(e);
+        let e = return_if_ok!(term.as_match(to!(ast::form::FileAttr))).max_depth(e);
+        let e = return_if_ok!(term.as_match(to!(ast::form::BehaviourAttr))).max_depth(e);
+        let e = return_if_ok!(term.as_match(to!(ast::form::ExportAttr))).max_depth(e);
+        let e = return_if_ok!(term.as_match(to!(ast::form::ImportAttr))).max_depth(e);
+        let e = return_if_ok!(term.as_match(to!(ast::form::ExportTypeAttr))).max_depth(e);
+        let e = return_if_ok!(term.as_match(to!(ast::form::CompileOptionsAttr))).max_depth(e);
+        let e = return_if_ok!(term.as_match(to!(ast::form::RecordDecl))).max_depth(e);
+        let e = return_if_ok!(term.as_match(to!(ast::form::TypeDecl))).max_depth(e);
+        let e = return_if_ok!(term.as_match(to!(ast::form::FunSpec))).max_depth(e);
+        let e = return_if_ok!(term.as_match(to!(ast::form::FunDecl))).max_depth(e);
+        let e = return_if_ok!(term.as_match(to!(ast::form::WildAttr))).max_depth(e);
+        let e = return_if_ok!(term.as_match(to!(ast::form::Eof))).max_depth(e);
+        Err(e)
     }
 }
-impl FromTerm for ast::Expression {
-    fn try_from(term: &eetf::Term) -> Result<Self, Option<&eetf::Term>> {
-        try_from!(term, ast::IntegerLit);
-        try_from!(term, ast::FloatLit);
-        try_from!(term, ast::StringLit);
-        try_from!(term, ast::CharLit);
-        try_from!(term, ast::AtomLit);
-        try_from!(term, ast::Match<_, _>);
-        try_from!(term, ast::Variable);
-        try_from!(term, ast::Tuple<_>);
-        try_from!(term, ast::Nil);
-        try_from!(term, ast::Cons<_>);
-        try_from!(term, ast::Binary<_>);
-        try_from!(term, ast::UnaryOp<_>);
-        try_from!(term, ast::BinaryOp<_>);
-        try_from!(term, ast::Record<_>);
-        try_from!(term, ast::RecordIndex<_>);
-        try_from!(term, ast::Map<_>);
-        try_from!(term, ast::Catch);
-        try_from!(term, ast::LocalCall<_>);
-        try_from!(term, ast::RemoteCall<_>);
-        try_from!(term, ast::Comprehension);
-        try_from!(term, ast::Block);
-        try_from!(term, ast::If);
-        try_from!(term, ast::Case);
-        try_from!(term, ast::Try);
-        try_from!(term, ast::Receive);
-        try_from!(term, ast::InternalFun);
-        try_from!(term, ast::ExternalFun);
-        try_from!(term, ast::AnonymousFun);
-        Err(Some(term))
+impl<'a> FromTerm<'a> for ast::Expression {
+    fn try_from(term: &'a eetf::Term) -> Result<Self, Unmatch<'a>> {
+        let e = return_if_ok!(term.as_match(to!(ast::IntegerLit)));
+        let e = return_if_ok!(term.as_match(to!(ast::FloatLit))).max_depth(e);
+        let e = return_if_ok!(term.as_match(to!(ast::StringLit))).max_depth(e);
+        let e = return_if_ok!(term.as_match(to!(ast::CharLit))).max_depth(e);
+        let e = return_if_ok!(term.as_match(to!(ast::AtomLit))).max_depth(e);
+        let e = return_if_ok!(term.as_match(to!(ast::Match<_, _>))).max_depth(e);
+        let e = return_if_ok!(term.as_match(to!(ast::Variable))).max_depth(e);
+        let e = return_if_ok!(term.as_match(to!(ast::Tuple<_>))).max_depth(e);
+        let e = return_if_ok!(term.as_match(to!(ast::Nil))).max_depth(e);
+        let e = return_if_ok!(term.as_match(to!(ast::Cons<_>))).max_depth(e);
+        let e = return_if_ok!(term.as_match(to!(ast::Binary<_>))).max_depth(e);
+        let e = return_if_ok!(term.as_match(to!(ast::UnaryOp<_>))).max_depth(e);
+        let e = return_if_ok!(term.as_match(to!(ast::BinaryOp<_>))).max_depth(e);
+        let e = return_if_ok!(term.as_match(to!(ast::Record<_>))).max_depth(e);
+        let e = return_if_ok!(term.as_match(to!(ast::RecordIndex<_>))).max_depth(e);
+        let e = return_if_ok!(term.as_match(to!(ast::Map<_>))).max_depth(e);
+        let e = return_if_ok!(term.as_match(to!(ast::Catch))).max_depth(e);
+        let e = return_if_ok!(term.as_match(to!(ast::LocalCall<_>))).max_depth(e);
+        let e = return_if_ok!(term.as_match(to!(ast::RemoteCall<_>))).max_depth(e);
+        let e = return_if_ok!(term.as_match(to!(ast::Comprehension))).max_depth(e);
+        let e = return_if_ok!(term.as_match(to!(ast::Block))).max_depth(e);
+        let e = return_if_ok!(term.as_match(to!(ast::If))).max_depth(e);
+        let e = return_if_ok!(term.as_match(to!(ast::Case))).max_depth(e);
+        let e = return_if_ok!(term.as_match(to!(ast::Try))).max_depth(e);
+        let e = return_if_ok!(term.as_match(to!(ast::Receive))).max_depth(e);
+        let e = return_if_ok!(term.as_match(to!(ast::InternalFun))).max_depth(e);
+        let e = return_if_ok!(term.as_match(to!(ast::ExternalFun))).max_depth(e);
+        let e = return_if_ok!(term.as_match(to!(ast::AnonymousFun))).max_depth(e);
+        Err(e)
     }
 }
-impl FromTerm for ast::Catch {
-    fn from(term: &eetf::Term) -> Option<Self> {
-        ("catch", I32, to!(ast::Expression))
-            .map_match(term, |(_, line, expr)| Self::new(line, expr))
+impl<'a> FromTerm<'a> for ast::Catch {
+    fn try_from(term: &'a eetf::Term) -> Result<Self, Unmatch<'a>> {
+        term.as_match(("catch", I32, to!(ast::Expression)))
+            .map(|(_, line, expr)| Self::new(line, expr))
     }
 }
-impl FromTerm for ast::Receive {
-    fn try_from(term: &eetf::Term) -> Result<Self, Option<&eetf::Term>> {
-        Either(("receive", I32, List(to!(ast::Clause))),
-               ("receive",
-                I32,
-                List(to!(ast::Clause)),
-                to!(ast::Expression),
-                List(to!(ast::Expression))))
-            .try_map_match(term, |result| {
+impl<'a> FromTerm<'a> for ast::Receive {
+    fn try_from(term: &'a eetf::Term) -> Result<Self, Unmatch<'a>> {
+        term.as_match(Or((("receive", I32, VarList(to!(ast::Clause))),
+                          ("receive",
+                           I32,
+                           VarList(to!(ast::Clause)),
+                           to!(ast::Expression),
+                           VarList(to!(ast::Expression))))))
+            .map(|result| {
                 match result {
-                    Ok((_, line, clauses)) => Self::new(line, clauses),
-                    Err((_, line, clauses, timeout, after)) => {
+                    Union2::A((_, line, clauses)) => Self::new(line, clauses),
+                    Union2::B((_, line, clauses, timeout, after)) => {
                         Self::new(line, clauses).timeout(timeout).after(after)
                     }
                 }
             })
     }
 }
-impl FromTerm for ast::InternalFun {
-    fn from(term: &eetf::Term) -> Option<Self> {
-        ("fun", I32, ("function", Atom, U32)).map_match(term, |(_, line, (_, name, arity))| {
-            Self::new(line, name.to_string(), arity)
-        })
+impl<'a> FromTerm<'a> for ast::InternalFun {
+    fn try_from(term: &'a eetf::Term) -> Result<Self, Unmatch<'a>> {
+        term.as_match(("fun", I32, ("function", atom(), U32)))
+            .map(|(_, line, (_, name, arity))| Self::new(line, name.to_string(), arity))
     }
 }
-impl FromTerm for ast::ExternalFun {
-    fn from(term: &eetf::Term) -> Option<Self> {
-        ("fun", I32, ("function", to!(ast::Expression), to!(ast::Expression), to!(ast::Expression)))
-            .map_match(term, |(_, line, (_, module, function, arity))| {
-                Self::new(line, module, function, arity)
-            })
+impl<'a> FromTerm<'a> for ast::ExternalFun {
+    fn try_from(term: &'a eetf::Term) -> Result<Self, Unmatch<'a>> {
+        term.as_match(("fun",
+                       I32,
+                       ("function",
+                        to!(ast::Expression),
+                        to!(ast::Expression),
+                        to!(ast::Expression))))
+            .map(|(_, line, (_, module, function, arity))| Self::new(line, module, function, arity))
     }
 }
-impl FromTerm for ast::AnonymousFun {
-    fn try_from(term: &eetf::Term) -> Result<Self, Option<&eetf::Term>> {
-        Either(("fun", I32, ("clauses", List(to!(ast::Clause)))),
-               ("named_fun", I32, Atom, List(to!(ast::Clause))))
-            .try_map_match(term, |result| {
+impl<'a> FromTerm<'a> for ast::AnonymousFun {
+    fn try_from(term: &'a eetf::Term) -> Result<Self, Unmatch<'a>> {
+        term.as_match(Or((("fun", I32, ("clauses", VarList(to!(ast::Clause)))),
+                          ("named_fun", I32, atom(), VarList(to!(ast::Clause))))))
+            .map(|result| {
                 match result {
-                    Ok((_, line, (_, clauses))) => Self::new(line, clauses),
-                    Err((_, line, name, clauses)) => {
+                    Union2::A((_, line, (_, clauses))) => Self::new(line, clauses),
+                    Union2::B((_, line, name, clauses)) => {
                         Self::new(line, clauses).name(name.to_string())
                     }
                 }
             })
     }
 }
-impl FromTerm for ast::Block {
-    fn from(term: &eetf::Term) -> Option<Self> {
-        ("block", I32, List(to!(ast::Expression)))
-            .map_match(term, |(_, line, body)| Self::new(line, body))
+impl<'a> FromTerm<'a> for ast::Block {
+    fn try_from(term: &'a eetf::Term) -> Result<Self, Unmatch<'a>> {
+        term.as_match(("block", I32, VarList(to!(ast::Expression))))
+            .map(|(_, line, body)| Self::new(line, body))
     }
 }
-impl FromTerm for ast::If {
-    fn from(term: &eetf::Term) -> Option<Self> {
-        ("if", I32, List(to!(ast::Clause)))
-            .map_match(term, |(_, line, clauses)| Self::new(line, clauses))
+impl<'a> FromTerm<'a> for ast::If {
+    fn try_from(term: &'a eetf::Term) -> Result<Self, Unmatch<'a>> {
+        term.as_match(("if", I32, VarList(to!(ast::Clause))))
+            .map(|(_, line, clauses)| Self::new(line, clauses))
     }
 }
-impl FromTerm for ast::Case {
-    fn from(term: &eetf::Term) -> Option<Self> {
-        ("case", I32, to!(ast::Expression), List(to!(ast::Clause))).map_match(term, |(_,
-                                                                                line,
-                                                                                expr,
-                                                                                clauses)| {
-            Self::new(line, expr, clauses)
-        })
+impl<'a> FromTerm<'a> for ast::Case {
+    fn try_from(term: &'a eetf::Term) -> Result<Self, Unmatch<'a>> {
+        term.as_match(("case", I32, to!(ast::Expression), VarList(to!(ast::Clause))))
+            .map(|(_, line, expr, clauses)| Self::new(line, expr, clauses))
     }
 }
-impl FromTerm for ast::Try {
-    fn from(term: &eetf::Term) -> Option<Self> {
-        ("try",
-         I32,
-         List(to!(ast::Expression)),
-         List(to!(ast::Clause)),
-         List(to!(ast::Clause)),
-         List(to!(ast::Expression)))
-            .map_match(term,
-                       |(_, line, body, case_clauses, catch_clauses, after)| {
-                           Self::new(line, body, case_clauses, catch_clauses, after)
-                       })
-    }
-}
-impl FromTerm for ast::Comprehension {
-    fn from(term: &eetf::Term) -> Option<Self> {
-        (Either("lc", "bc"), I32, to!(ast::Expression), List(to!(ast::Qualifier)))
-            .map_match(term, |(is_list, line, expr, qualifiers)| {
-                Self::new(line, is_list.is_ok(), expr, qualifiers)
+impl<'a> FromTerm<'a> for ast::Try {
+    fn try_from(term: &'a eetf::Term) -> Result<Self, Unmatch<'a>> {
+        term.as_match(("try",
+                       I32,
+                       VarList(to!(ast::Expression)),
+                       VarList(to!(ast::Clause)),
+                       VarList(to!(ast::Clause)),
+                       VarList(to!(ast::Expression))))
+            .map(|(_, line, body, case_clauses, catch_clauses, after)| {
+                Self::new(line, body, case_clauses, catch_clauses, after)
             })
     }
 }
-impl FromTerm for ast::Qualifier {
-    fn from(term: &eetf::Term) -> Option<Self> {
+impl<'a> FromTerm<'a> for ast::Comprehension {
+    fn try_from(term: &'a eetf::Term) -> Result<Self, Unmatch<'a>> {
+        term.as_match((Or(("lc", "bc")), I32, to!(ast::Expression), VarList(to!(ast::Qualifier))))
+            .map(|(tag, line, expr, qualifiers)| {
+                let is_list = tag.is_a();
+                Self::new(line, is_list, expr, qualifiers)
+            })
+    }
+}
+impl<'a> FromTerm<'a> for ast::Qualifier {
+    fn try_from(term: &'a eetf::Term) -> Result<Self, Unmatch<'a>> {
         use ast::expr::Qualifier::*;
-        None.or_else(|| {
-                ("generate", I32, to!(ast::Pattern), to!(ast::Expression))
-                    .map_match(term, |(_, line, pattern, expr)| {
+        term.as_match(Or((("generate", I32, to!(ast::Pattern), to!(ast::Expression)),
+                          ("b_generate", I32, to!(ast::Pattern), to!(ast::Expression)),
+                          to!(ast::Expression))))
+            .map(|result| {
+                match result {
+                    Union3::A((_, line, pattern, expr)) => {
                         Generator(ast::expr::Generator::new(line, pattern, expr))
-                    })
-            })
-            .or_else(|| {
-                ("b_generate", I32, to!(ast::Pattern), to!(ast::Expression))
-                    .map_match(term, |(_, line, pattern, expr)| {
+                    }
+                    Union3::B((_, line, pattern, expr)) => {
                         BitStringGenerator(ast::expr::Generator::new(line, pattern, expr))
-                    })
-            })
-            .or_else(|| to!(ast::Expression).map_match(term, |expr| Filter(expr)))
-    }
-}
-impl FromTerm for ast::Clause {
-    fn try_from(term: &eetf::Term) -> Result<Self, Option<&eetf::Term>> {
-        ("clause",
-         I32,
-         List(to!(ast::Pattern)),
-         List(to!(ast::OrGuard)),
-         List(to!(ast::Expression)))
-            .try_map_match(term, |(_, line, patterns, guards, body)| {
-                Self::new(line, patterns, guards, body)
+                    }
+                    Union3::C(expr) => Filter(expr),
+                }
             })
     }
 }
-impl FromTerm for ast::OrGuard {
-    fn from(term: &eetf::Term) -> Option<Self> {
-        List(to!(ast::Guard)).map_match(term, |guards| Self::new(guards))
+impl<'a> FromTerm<'a> for ast::Clause {
+    fn try_from(term: &'a eetf::Term) -> Result<Self, Unmatch<'a>> {
+        term.as_match(("clause",
+                       I32,
+                       VarList(to!(ast::Pattern)),
+                       VarList(to!(ast::OrGuard)),
+                       VarList(to!(ast::Expression))))
+            .map(|(_, line, patterns, guards, body)| Self::new(line, patterns, guards, body))
     }
 }
-impl<T: FromTerm> FromTerm for ast::Tuple<T> {
-    fn try_from(term: &eetf::Term) -> Result<Self, Option<&eetf::Term>> {
-        ("tuple", I32, List(to!(T)))
-            .try_map_match(term, |(_, line, elements)| Self::new(line, elements))
+impl<'a> FromTerm<'a> for ast::OrGuard {
+    fn try_from(term: &'a eetf::Term) -> Result<Self, Unmatch<'a>> {
+        term.as_match(VarList(to!(ast::Guard))).map(|guards| Self::new(guards))
     }
 }
-impl<T: FromTerm> FromTerm for ast::Cons<T> {
-    fn try_from(term: &eetf::Term) -> Result<Self, Option<&eetf::Term>> {
-        ("cons", I32, to!(T), to!(T))
-            .try_map_match(term, |(_, line, head, tail)| Self::new(line, head, tail))
+impl<'a, T: FromTerm<'a> + Debug + 'static> FromTerm<'a> for ast::Tuple<T> {
+    fn try_from(term: &'a eetf::Term) -> Result<Self, Unmatch<'a>> {
+        term.as_match(("tuple", I32, VarList(to!(T))))
+            .map(|(_, line, elements)| Self::new(line, elements))
     }
 }
-impl<T: FromTerm> FromTerm for ast::Binary<T> {
-    fn from(term: &eetf::Term) -> Option<Self> {
-        ("bin", I32, List(to!(ast::BinElement<T>)))
-            .map_match(term, |(_, line, elements)| Self::new(line, elements))
+impl<'a, T: FromTerm<'a> + Debug + 'static> FromTerm<'a> for ast::Cons<T> {
+    fn try_from(term: &'a eetf::Term) -> Result<Self, Unmatch<'a>> {
+        term.as_match(("cons", I32, to!(T), to!(T)))
+            .map(|(_, line, head, tail)| Self::new(line, head, tail))
     }
 }
-impl<T: FromTerm> FromTerm for ast::BinElement<T> {
-    fn from(term: &eetf::Term) -> Option<Self> {
-        ("bin_element",
-         I32,
-         to!(T),
-         Either(to!(T), "default"),
-         Either(List(to!(ast::BinElementTypeSpec)), "default"))
-            .map_match(term, |(_, line, value, size, tsl)| {
+impl<'a, T: FromTerm<'a> + Debug + 'static> FromTerm<'a> for ast::Binary<T> {
+    fn try_from(term: &'a eetf::Term) -> Result<Self, Unmatch<'a>> {
+        term.as_match(("bin", I32, VarList(to!(ast::BinElement<T>))))
+            .map(|(_, line, elements)| Self::new(line, elements))
+    }
+}
+impl<'a, T: FromTerm<'a> + Debug + 'static> FromTerm<'a> for ast::BinElement<T> {
+    fn try_from(term: &'a eetf::Term) -> Result<Self, Unmatch<'a>> {
+        term.as_match(("bin_element",
+                       I32,
+                       to!(T),
+                       Or((to!(T), "default")),
+                       Or((VarList(to!(ast::BinElementTypeSpec)), "default"))))
+            .map(|(_, line, value, size, tsl)| {
                 let mut e = Self::new(line, value);
-                if let Ok(size) = size {
+                if let Union2::A(size) = size {
                     e = e.size(size);
                 }
-                if let Ok(tsl) = tsl {
+                if let Union2::A(tsl) = tsl {
                     e = e.tsl(tsl);
                 }
                 e
             })
     }
 }
-impl FromTerm for ast::BinElementTypeSpec {
-    fn from(term: &eetf::Term) -> Option<Self> {
-        Either(Atom, (Atom, U64)).map_match(term, |ts| {
-            match ts {
-                Ok(name) => Self::new(name.to_string(), None),
-                Err((name, value)) => Self::new(name.to_string(), Some(value)),
-            }
-        })
+impl<'a> FromTerm<'a> for ast::BinElementTypeSpec {
+    fn try_from(term: &'a eetf::Term) -> Result<Self, Unmatch<'a>> {
+        term.as_match(Or((atom(), (atom(), U64))))
+            .map(|ts| {
+                match ts {
+                    Union2::A(name) => Self::new(name.to_string(), None),
+                    Union2::B((name, value)) => Self::new(name.to_string(), Some(value)),
+                }
+            })
     }
 }
-impl<T: FromTerm> FromTerm for ast::Record<T> {
-    fn from(term: &eetf::Term) -> Option<Self> {
-        None.or_else(|| {
-                ("record", I32, Atom, List(to!(ast::RecordField<T>))).map_match(term, |(_,
-                                                                                  line,
-                                                                                  name,
-                                                                                  fields)| {
-                    Self::new(line, name.to_string(), fields)
-                })
-            })
-            .or_else(|| {
-                ("record", I32, to!(ast::Expression), Atom, List(to!(ast::RecordField<T>)))
-                    .map_match(term, |(_, line, base, name, fields)| {
+impl<'a, T: FromTerm<'a> + Debug + 'static> FromTerm<'a> for ast::Record<T> {
+    fn try_from(term: &'a eetf::Term) -> Result<Self, Unmatch<'a>> {
+        term.as_match(Or((("record", I32, atom(), VarList(to!(ast::RecordField<T>))),
+                          ("record",
+                           I32,
+                           to!(ast::Expression),
+                           atom(),
+                           VarList(to!(ast::RecordField<T>))))))
+            .map(|result| {
+                match result {
+                    Union2::A((_, line, name, fields)) => Self::new(line, name.to_string(), fields),
+                    Union2::B((_, line, base, name, fields)) => {
                         Self::new(line, name.to_string(), fields).base(base)
-                    })
+                    }
+                }
             })
     }
 }
-impl<T: FromTerm> FromTerm for ast::RecordField<T> {
-    fn from(term: &eetf::Term) -> Option<Self> {
-        ("record_field", I32, Either(to!(ast::AtomLit), ("var", I32, "_")), to!(T))
-            .map_match(term,
-                       |(_, line, name, value)| Self::new(line, name.ok().map(|x| x.value), value))
-    }
-}
-impl<T: FromTerm> FromTerm for ast::Map<T> {
-    fn from(term: &eetf::Term) -> Option<Self> {
-        None.or_else(|| {
-                ("map", I32, List(to!(ast::MapPair<T>)))
-                    .map_match(term, |(_, line, pairs)| Self::new(line, pairs))
-            })
-            .or_else(|| {
-                ("map", I32, to!(ast::Expression), List(to!(ast::MapPair<T>))).map_match(term, |(_,
-                                                                                           line,
-                                                                                           base,
-                                                                                           pairs)| {
-                    Self::new(line, pairs).base(base)
-                })
+impl<'a, T: FromTerm<'a> + Debug + 'static> FromTerm<'a> for ast::RecordField<T> {
+    fn try_from(term: &'a eetf::Term) -> Result<Self, Unmatch<'a>> {
+        term.as_match(("record_field", I32, Or((to!(ast::AtomLit), ("var", I32, "_"))), to!(T)))
+            .map(|(_, line, name, value)| {
+                let name = name.into_result().ok().map(|n| n.value);
+                Self::new(line, name, value)
             })
     }
 }
-impl<T: FromTerm> FromTerm for ast::MapPair<T> {
-    fn from(term: &eetf::Term) -> Option<Self> {
-        (Either("map_field_assoc", "map_field_exact"), I32, to!(T), to!(T))
-            .map_match(term, |(is_assoc, line, key, value)| {
-                Self::new(line, is_assoc.is_ok(), key, value)
+impl<'a, T: FromTerm<'a> + Debug + 'static> FromTerm<'a> for ast::Map<T> {
+    fn try_from(term: &'a eetf::Term) -> Result<Self, Unmatch<'a>> {
+        term.as_match(Or((("map", I32, VarList(to!(ast::MapPair<T>))),
+                          ("map", I32, to!(ast::Expression), VarList(to!(ast::MapPair<T>))))))
+            .map(|result| {
+                match result {
+                    Union2::A((_, line, pairs)) => Self::new(line, pairs),
+                    Union2::B((_, line, base, pairs)) => Self::new(line, pairs).base(base),
+                }
             })
     }
 }
-impl<T: FromTerm> FromTerm for ast::LocalCall<T> {
-    fn from(term: &eetf::Term) -> Option<Self> {
-        ("call", I32, to!(T), List(to!(T))).map_match(term, |(_, line, function, args)| {
-            Self::new(line, function, args)
-        })
+impl<'a, T: FromTerm<'a> + Debug + 'static> FromTerm<'a> for ast::MapPair<T> {
+    fn try_from(term: &'a eetf::Term) -> Result<Self, Unmatch<'a>> {
+        term.as_match((Or(("map_field_assoc", "map_field_exact")), I32, to!(T), to!(T)))
+            .map(|(tag, line, key, value)| {
+                let is_assoc = tag.is_a();
+                Self::new(line, is_assoc, key, value)
+            })
     }
 }
-impl<T: FromTerm> FromTerm for ast::RemoteCall<T> {
-    fn from(term: &eetf::Term) -> Option<Self> {
-        ("call", I32, ("remote", U32, to!(T), to!(T)), List(to!(T)))
-            .map_match(term, |(_, line, (_, _, module, function), args)| {
+impl<'a, T: FromTerm<'a> + Debug + 'static> FromTerm<'a> for ast::LocalCall<T> {
+    fn try_from(term: &'a eetf::Term) -> Result<Self, Unmatch<'a>> {
+        term.as_match(("call", I32, to!(T), VarList(to!(T))))
+            .map(|(_, line, function, args)| Self::new(line, function, args))
+    }
+}
+impl<'a, T: FromTerm<'a> + Debug + 'static> FromTerm<'a> for ast::RemoteCall<T> {
+    fn try_from(term: &'a eetf::Term) -> Result<Self, Unmatch<'a>> {
+        term.as_match(("call", I32, ("remote", U32, to!(T), to!(T)), VarList(to!(T))))
+            .map(|(_, line, (_, _, module, function), args)| {
                 Self::new(line, module, function, args)
             })
     }
 }
-impl<T: FromTerm> FromTerm for ast::RecordIndex<T> {
-    fn from(term: &eetf::Term) -> Option<Self> {
-        None.or_else(|| {
-                ("record_index", I32, Atom, to!(ast::AtomLit))
-                    .map_match(term, |(_, line, name, field)| {
+impl<'a, T: FromTerm<'a> + Debug + 'static> FromTerm<'a> for ast::RecordIndex<T> {
+    fn try_from(term: &'a eetf::Term) -> Result<Self, Unmatch<'a>> {
+        term.as_match(Or((("record_index", I32, atom(), to!(ast::AtomLit)),
+                          ("record_field", I32, to!(T), atom(), to!(ast::AtomLit)))))
+            .map(|result| {
+                match result {
+                    Union2::A((_, line, name, field)) => {
                         Self::new(line, name.to_string(), field.value)
-                    })
-            })
-            .or_else(|| {
-                ("record_field", I32, to!(T), Atom, to!(ast::AtomLit))
-                    .map_match(term, |(_, line, base, name, field)| {
+                    }
+                    Union2::B((_, line, base, name, field)) => {
                         Self::new(line, name.to_string(), field.value).base(base)
-                    })
+                    }
+                }
             })
     }
 }
-impl<T: FromTerm> FromTerm for ast::BinaryOp<T> {
-    fn try_from(term: &eetf::Term) -> Result<Self, Option<&eetf::Term>> {
-        ("op", I32, Atom, to!(T), to!(T)).try_map_match(term, |(_, line, op, left, right)| {
-            Self::new(line, op.to_string(), left, right)
-        })
+impl<'a, T: FromTerm<'a> + Debug + 'static> FromTerm<'a> for ast::BinaryOp<T> {
+    fn try_from(term: &'a eetf::Term) -> Result<Self, Unmatch<'a>> {
+        term.as_match(("op", I32, atom(), to!(T), to!(T)))
+            .map(|(_, line, op, left, right)| Self::new(line, op.to_string(), left, right))
     }
 }
-impl<T: FromTerm> FromTerm for ast::UnaryOp<T> {
-    fn from(term: &eetf::Term) -> Option<Self> {
-        ("op", I32, Atom, to!(T)).map_match(term, |(_, line, op, arg)| {
-            Self::new(line, op.to_string(), arg)
-        })
+impl<'a, T: FromTerm<'a> + Debug + 'static> FromTerm<'a> for ast::UnaryOp<T> {
+    fn try_from(term: &'a eetf::Term) -> Result<Self, Unmatch<'a>> {
+        term.as_match(("op", I32, atom(), to!(T)))
+            .map(|(_, line, op, arg)| Self::new(line, op.to_string(), arg))
     }
 }
-impl FromTerm for ast::Nil {
-    fn from(term: &eetf::Term) -> Option<Self> {
-        ("nil", I32).map_match(term, |(_, line)| Self::new(line))
+impl<'a> FromTerm<'a> for ast::Nil {
+    fn try_from(term: &'a eetf::Term) -> Result<Self, Unmatch<'a>> {
+        term.as_match(("nil", I32)).map(|(_, line)| Self::new(line))
     }
 }
-impl<L, R> FromTerm for ast::Match<L, R>
-    where L: FromTerm,
-          R: FromTerm
+impl<'a, L, R> FromTerm<'a> for ast::Match<L, R>
+    where L: FromTerm<'a> + Debug + 'static,
+          R: FromTerm<'a> + Debug + 'static
 {
-    fn try_from(term: &eetf::Term) -> Result<Self, Option<&eetf::Term>> {
-        ("match", I32, to!(L), to!(R))
-            .try_map_match(term, |(_, line, left, right)| Self::new(line, left, right))
+    fn try_from(term: &'a eetf::Term) -> Result<Self, Unmatch<'a>> {
+        term.as_match(("match", I32, to!(L), to!(R)))
+            .map(|(_, line, left, right)| Self::new(line, left, right))
     }
 }
-impl FromTerm for ast::Type {
-    fn try_from(term: &eetf::Term) -> Result<Self, Option<&eetf::Term>> {
-        try_from!(term, ast::AtomLit);
-        try_from!(term, ast::IntegerLit);
-        try_from!(term, ast::Variable);
-        try_from!(term, ast::AnnotatedType);
-        try_from!(term, ast::UnaryOp<_>);
-        try_from!(term, ast::BinaryOp<_>);
-        try_from!(term, ast::BitStringType);
-        try_from!(term, ast::Nil);
-        try_from!(term, ast::AnyFunType);
-        try_from!(term, ast::FunctionType);
-        try_from!(term, ast::RangeType);
-        try_from!(term, ast::MapType);
-        try_from!(term, ast::RecordType);
-        try_from!(term, ast::RemoteType);
-        try_from!(term, ast::AnyTupleType);
-        try_from!(term, ast::TupleType);
-        try_from!(term, ast::UnionType);
-        try_from!(term, ast::BuiltInType);
-        try_from!(term, ast::UserType);
-        Err(Some(term))
+impl<'a> FromTerm<'a> for ast::Type {
+    fn try_from(term: &'a eetf::Term) -> Result<Self, Unmatch<'a>> {
+        let e = return_if_ok!(term.as_match(to!(ast::IntegerLit)));
+        let e = return_if_ok!(term.as_match(to!(ast::AtomLit))).max_depth(e);
+        let e = return_if_ok!(term.as_match(to!(ast::Variable))).max_depth(e);
+        let e = return_if_ok!(term.as_match(to!(ast::UnaryOp<_>))).max_depth(e);
+        let e = return_if_ok!(term.as_match(to!(ast::BinaryOp<_>))).max_depth(e);
+        let e = return_if_ok!(term.as_match(to!(ast::Nil))).max_depth(e);
+        let e = return_if_ok!(term.as_match(to!(ast::AnnotatedType))).max_depth(e);
+        let e = return_if_ok!(term.as_match(to!(ast::BitStringType))).max_depth(e);
+        let e = return_if_ok!(term.as_match(to!(ast::AnyFunType))).max_depth(e);
+        let e = return_if_ok!(term.as_match(to!(ast::FunctionType))).max_depth(e);
+        let e = return_if_ok!(term.as_match(to!(ast::RangeType))).max_depth(e);
+        let e = return_if_ok!(term.as_match(to!(ast::MapType))).max_depth(e);
+        let e = return_if_ok!(term.as_match(to!(ast::RecordType))).max_depth(e);
+        let e = return_if_ok!(term.as_match(to!(ast::RemoteType))).max_depth(e);
+        let e = return_if_ok!(term.as_match(to!(ast::AnyTupleType))).max_depth(e);
+        let e = return_if_ok!(term.as_match(to!(ast::TupleType))).max_depth(e);
+        let e = return_if_ok!(term.as_match(to!(ast::UnionType))).max_depth(e);
+        let e = return_if_ok!(term.as_match(to!(ast::BuiltInType))).max_depth(e);
+        let e = return_if_ok!(term.as_match(to!(ast::UserType))).max_depth(e);
+        Err(e)
     }
 }
-impl FromTerm for ast::UserType {
-    fn from(term: &eetf::Term) -> Option<Self> {
-        ("user_type", I32, Atom, List(to!(ast::Type))).map_match(term, |(_, line, name, args)| {
-            Self::new(line, name.to_string(), args)
-        })
+impl<'a> FromTerm<'a> for ast::UserType {
+    fn try_from(term: &'a eetf::Term) -> Result<Self, Unmatch<'a>> {
+        term.as_match(("user_type", I32, atom(), VarList(to!(ast::Type))))
+            .map(|(_, line, name, args)| Self::new(line, name.to_string(), args))
     }
 }
-impl FromTerm for ast::UnionType {
-    fn from(term: &eetf::Term) -> Option<Self> {
-        ("type", I32, "union", List(to!(ast::Type)))
-            .map_match(term, |(_, line, _, types)| Self::new(line, types))
+impl<'a> FromTerm<'a> for ast::UnionType {
+    fn try_from(term: &'a eetf::Term) -> Result<Self, Unmatch<'a>> {
+        term.as_match(("type", I32, "union", VarList(to!(ast::Type))))
+            .map(|(_, line, _, types)| Self::new(line, types))
     }
 }
-impl FromTerm for ast::TupleType {
-    fn from(term: &eetf::Term) -> Option<Self> {
-        ("type", I32, "tuple", List(to!(ast::Type)))
-            .map_match(term, |(_, line, _, types)| Self::new(line, types))
+impl<'a> FromTerm<'a> for ast::TupleType {
+    fn try_from(term: &'a eetf::Term) -> Result<Self, Unmatch<'a>> {
+        term.as_match(("type", I32, "tuple", VarList(to!(ast::Type))))
+            .map(|(_, line, _, types)| Self::new(line, types))
     }
 }
-impl FromTerm for ast::AnyTupleType {
-    fn from(term: &eetf::Term) -> Option<Self> {
-        ("type", I32, "tuple", "any").map_match(term, |(_, line, _, _)| Self::new(line))
+impl<'a> FromTerm<'a> for ast::AnyTupleType {
+    fn try_from(term: &'a eetf::Term) -> Result<Self, Unmatch<'a>> {
+        term.as_match(("type", I32, "tuple", "any"))
+            .map(|(_, line, _, _)| Self::new(line))
     }
 }
-impl FromTerm for ast::RemoteType {
-    fn from(term: &eetf::Term) -> Option<Self> {
-        ("remote_type", I32, List3(to!(ast::AtomLit), to!(ast::AtomLit), List(to!(ast::Type))))
-            .map_match(term, |(_, line, (module, function, args))| {
+impl<'a> FromTerm<'a> for ast::RemoteType {
+    fn try_from(term: &'a eetf::Term) -> Result<Self, Unmatch<'a>> {
+        term.as_match(("remote_type",
+                       I32,
+                       FixList((to!(ast::AtomLit), to!(ast::AtomLit), VarList(to!(ast::Type))))))
+            .map(|(_, line, (module, function, args))| {
                 Self::new(line, module.value, function.value, args)
             })
     }
 }
-impl FromTerm for ast::RecordType {
-    fn from(term: &eetf::Term) -> Option<Self> {
-        ("type", I32, "record", List(Either(to!(ast::AtomLit), to!(ast::RecordFieldType))))
-            .map_match(term, |(_, line, _, mut list)| {
-                assert!(!list.is_empty()); // XXX:
-                let name = list.remove(0).unwrap();
-                let mut fields = Vec::with_capacity(list.len());
-                for x in list {
-                    if let Err(x) = x {
-                        fields.push(x);
-                    } else {
-                        unreachable!(); // XXX
-                    }
-                }
-                Self::new(line, name.value, fields)
-            })
+impl<'a> FromTerm<'a> for ast::RecordType {
+    fn try_from(term: &'a eetf::Term) -> Result<Self, Unmatch<'a>> {
+        term.as_match(("type", I32, "record", Cons(to!(ast::AtomLit), to!(ast::RecordFieldType))))
+            .map(|(_, line, _, (name, fields))| Self::new(line, name.value, fields))
     }
 }
-impl FromTerm for ast::RecordFieldType {
-    fn from(term: &eetf::Term) -> Option<Self> {
-        ("type", I32, "field_type", List2(to!(ast::AtomLit), to!(ast::Type)))
-            .map_match(term,
-                       |(_, line, _, (name, type_))| Self::new(line, name.value, type_))
+impl<'a> FromTerm<'a> for ast::RecordFieldType {
+    fn try_from(term: &'a eetf::Term) -> Result<Self, Unmatch<'a>> {
+        term.as_match(("type", I32, "field_type", FixList((to!(ast::AtomLit), to!(ast::Type)))))
+            .map(|(_, line, _, (name, type_))| Self::new(line, name.value, type_))
     }
 }
-impl FromTerm for ast::BuiltInType {
-    fn from(term: &eetf::Term) -> Option<Self> {
-        ("type", I32, Atom, Either("any", List(to!(ast::Type))))
-            .map_match(term, |(_, line, name, args)| {
+impl<'a> FromTerm<'a> for ast::BuiltInType {
+    fn try_from(term: &'a eetf::Term) -> Result<Self, Unmatch<'a>> {
+        term.as_match(("type", I32, atom(), Or(("any", VarList(to!(ast::Type))))))
+            .map(|(_, line, name, args)| {
                 match args {
-                    Ok(_) => Self::new(line, name.to_string(), Vec::new()),
-                    Err(args) => Self::new(line, name.to_string(), args),
+                    Union2::A(_) => Self::new(line, name.to_string(), Vec::new()),
+                    Union2::B(args) => Self::new(line, name.to_string(), args),
                 }
             })
     }
 }
-impl FromTerm for ast::MapType {
-    fn from(term: &eetf::Term) -> Option<Self> {
-        ("type", I32, "map", List(to!(ast::MapPairType)))
-            .map_match(term, |(_, line, _, pairs)| Self::new(line, pairs))
+impl<'a> FromTerm<'a> for ast::MapType {
+    fn try_from(term: &'a eetf::Term) -> Result<Self, Unmatch<'a>> {
+        term.as_match(("type", I32, "map", VarList(to!(ast::MapPairType))))
+            .map(|(_, line, _, pairs)| Self::new(line, pairs))
     }
 }
-impl FromTerm for ast::MapPairType {
-    fn from(term: &eetf::Term) -> Option<Self> {
-        ("type", I32, "map_field_assoc", List2(to!(ast::Type), to!(ast::Type)))
-            .map_match(term,
-                       |(_, line, _, (key, value))| Self::new(line, key, value))
+impl<'a> FromTerm<'a> for ast::MapPairType {
+    fn try_from(term: &'a eetf::Term) -> Result<Self, Unmatch<'a>> {
+        term.as_match(("type", I32, "map_field_assoc", FixList((to!(ast::Type), to!(ast::Type)))))
+            .map(|(_, line, _, (key, value))| Self::new(line, key, value))
     }
 }
-impl FromTerm for ast::RangeType {
-    fn from(term: &eetf::Term) -> Option<Self> {
-        ("type", I32, "range", List2(to!(ast::Type), to!(ast::Type)))
-            .map_match(term, |(_, line, _, (low, high))| Self::new(line, low, high))
+impl<'a> FromTerm<'a> for ast::RangeType {
+    fn try_from(term: &'a eetf::Term) -> Result<Self, Unmatch<'a>> {
+        term.as_match(("type", I32, "range", FixList((to!(ast::Type), to!(ast::Type)))))
+            .map(|(_, line, _, (low, high))| Self::new(line, low, high))
     }
 }
-impl FromTerm for ast::FunctionType {
-    fn from(term: &eetf::Term) -> Option<Self> {
-        None.or_else(|| {
+impl<'a> FromTerm<'a> for ast::FunctionType {
+    fn try_from(term: &'a eetf::Term) -> Result<Self, Unmatch<'a>> {
+        term.as_match(Or((
                 ("type",
                  I32,
                  "bounded_fun",
-                 List2(to!(ast::FunctionType), List(to!(ast::FunctionConstraint))))
-                    .map_match(term,
-                               |(_, _, _, (fun, constraints))| fun.constraints(constraints))
-            })
-            .or_else(|| {
+                 FixList((to!(ast::FunctionType), VarList(to!(ast::FunctionConstraint))))),
                 ("type",
                  I32,
                  "fun",
-                 List2(("type", I32, "product", List(to!(ast::Type))),
-                       to!(ast::Type)))
-                    .map_match(term, |(_, line, _, ((_, _, _, args), return_type))| {
-                        Self::new(line, args, return_type)
-                    })
-            })
-    }
-}
-impl FromTerm for ast::FunctionConstraint {
-    fn from(term: &eetf::Term) -> Option<Self> {
-        ("type",
-         I32,
-         "constraint",
-         List2(("atom", I32, "is_subtype"),
-               List2(to!(ast::Variable), to!(ast::Type))))
-            .map_match(term,
-                       |(_, line, _, (_, (var, subtype)))| Self::new(line, var, subtype))
-    }
-}
-impl FromTerm for ast::AnyFunType {
-    fn from(term: &eetf::Term) -> Option<Self> {
-        ("type", I32, "fun", Either(Nil, List2(("type", I32, "any"), to!(ast::Type))))
-            .map_match(term, |(_, line, _, fun)| {
-                match fun {
-                    Ok(_) => Self::new(line),
-                    Err((_, type_)) => Self::new(line).return_type(type_),
+                 FixList((("type", I32, "product", VarList(to!(ast::Type))),
+                         to!(ast::Type)))))))
+            .map(|result| {
+                match result {
+                    Union2::A((_, _, _, (fun, constraints))) => fun.constraints(constraints),
+                    Union2::B((_, line, _, ((_, _, _, args), return_type))) => {
+                        Self::new(line, args, return_type)}
                 }
             })
     }
 }
-impl FromTerm for ast::AnnotatedType {
-    fn from(term: &eetf::Term) -> Option<Self> {
-        ("ann_type", I32, List2(to!(ast::Variable), to!(ast::Type)))
-            .map_match(term, |(_, line, (var, type_))| Self::new(line, var, type_))
+impl<'a> FromTerm<'a> for ast::FunctionConstraint {
+    fn try_from(term: &'a eetf::Term) -> Result<Self, Unmatch<'a>> {
+        term.as_match(("type",
+                       I32,
+                       "constraint",
+                       FixList((("atom", I32, "is_subtype"),
+                                FixList((to!(ast::Variable), to!(ast::Type)))))))
+            .map(|(_, line, _, (_, (var, subtype)))| Self::new(line, var, subtype))
     }
 }
-impl FromTerm for ast::BitStringType {
-    fn from(term: &eetf::Term) -> Option<Self> {
-        ("type", I32, "binary", List2(to!(ast::IntegerLit), to!(ast::IntegerLit)))
-            .map_match(term, |(_, line, _, (bytes, bits))| {
+impl<'a> FromTerm<'a> for ast::AnyFunType {
+    fn try_from(term: &'a eetf::Term) -> Result<Self, Unmatch<'a>> {
+        term.as_match(("type",
+                       I32,
+                       "fun",
+                       Or((Nil, FixList((("type", I32, "any"), to!(ast::Type)))))))
+            .map(|(_, line, _, fun)| {
+                match fun {
+                    Union2::A(_) => Self::new(line),
+                    Union2::B((_, type_)) => Self::new(line).return_type(type_),
+                }
+            })
+    }
+}
+impl<'a> FromTerm<'a> for ast::AnnotatedType {
+    fn try_from(term: &'a eetf::Term) -> Result<Self, Unmatch<'a>> {
+        term.as_match(("ann_type", I32, FixList((to!(ast::Variable), to!(ast::Type)))))
+            .map(|(_, line, (var, type_))| Self::new(line, var, type_))
+    }
+}
+impl<'a> FromTerm<'a> for ast::BitStringType {
+    fn try_from(term: &'a eetf::Term) -> Result<Self, Unmatch<'a>> {
+        term.as_match(("type",
+                       I32,
+                       "binary",
+                       FixList((to!(ast::IntegerLit), to!(ast::IntegerLit)))))
+            .map(|(_, line, _, (bytes, bits))| {
                 Self::new(line, bytes.to_u64().unwrap(), bits.to_u64().unwrap())
             })
     }
 }
-impl FromTerm for ast::Pattern {
-    fn try_from(term: &eetf::Term) -> Result<Self, Option<&eetf::Term>> {
-        try_from!(term, ast::IntegerLit);
-        try_from!(term, ast::FloatLit);
-        try_from!(term, ast::StringLit);
-        try_from!(term, ast::CharLit);
-        try_from!(term, ast::AtomLit);
-        try_from!(term, ast::Variable);
-        try_from!(term, ast::Match<_,_>);
-        try_from!(term, ast::Tuple<_>);
-        try_from!(term, ast::Nil);
-        try_from!(term, ast::Cons<_>);
-        try_from!(term, ast::Binary<_>);
-        try_from!(term, ast::UnaryOp<_>);
-        try_from!(term, ast::BinaryOp<_>);
-        try_from!(term, ast::Record<_>);
-        try_from!(term, ast::RecordIndex<_>);
-        try_from!(term, ast::Map<_>);
-        Err(Some(term))
+impl<'a> FromTerm<'a> for ast::Pattern {
+    fn try_from(term: &'a eetf::Term) -> Result<Self, Unmatch<'a>> {
+        let e = return_if_ok!(term.as_match(to!(ast::IntegerLit)));
+        let e = return_if_ok!(term.as_match(to!(ast::FloatLit))).max_depth(e);
+        let e = return_if_ok!(term.as_match(to!(ast::StringLit))).max_depth(e);
+        let e = return_if_ok!(term.as_match(to!(ast::CharLit))).max_depth(e);
+        let e = return_if_ok!(term.as_match(to!(ast::AtomLit))).max_depth(e);
+        let e = return_if_ok!(term.as_match(to!(ast::Match<_, _>))).max_depth(e);
+        let e = return_if_ok!(term.as_match(to!(ast::Variable))).max_depth(e);
+        let e = return_if_ok!(term.as_match(to!(ast::Tuple<_>))).max_depth(e);
+        let e = return_if_ok!(term.as_match(to!(ast::Nil))).max_depth(e);
+        let e = return_if_ok!(term.as_match(to!(ast::Cons<_>))).max_depth(e);
+        let e = return_if_ok!(term.as_match(to!(ast::Binary<_>))).max_depth(e);
+        let e = return_if_ok!(term.as_match(to!(ast::UnaryOp<_>))).max_depth(e);
+        let e = return_if_ok!(term.as_match(to!(ast::BinaryOp<_>))).max_depth(e);
+        let e = return_if_ok!(term.as_match(to!(ast::Record<_>))).max_depth(e);
+        let e = return_if_ok!(term.as_match(to!(ast::RecordIndex<_>))).max_depth(e);
+        let e = return_if_ok!(term.as_match(to!(ast::Map<_>))).max_depth(e);
+        Err(e)
     }
 }
-impl FromTerm for ast::Guard {
-    fn try_from(term: &eetf::Term) -> Result<Self, Option<&eetf::Term>> {
-        try_from!(term, ast::IntegerLit);
-        try_from!(term, ast::FloatLit);
-        try_from!(term, ast::StringLit);
-        try_from!(term, ast::CharLit);
-        try_from!(term, ast::AtomLit);
-        try_from!(term, ast::Variable);
-        try_from!(term, ast::Tuple<_>);
-        try_from!(term, ast::Nil);
-        try_from!(term, ast::Cons<_>);
-        try_from!(term, ast::Binary<_>);
-        try_from!(term, ast::UnaryOp<_>);
-        try_from!(term, ast::BinaryOp<_>);
-        try_from!(term, ast::Record<_>);
-        try_from!(term, ast::RecordIndex<_>);
-        try_from!(term, ast::LocalCall<_>);
-        try_from!(term, ast::RemoteCall<_>);
-        Err(Some(term))
+impl<'a> FromTerm<'a> for ast::Guard {
+    fn try_from(term: &'a eetf::Term) -> Result<Self, Unmatch<'a>> {
+        let e = return_if_ok!(term.as_match(to!(ast::IntegerLit)));
+        let e = return_if_ok!(term.as_match(to!(ast::FloatLit))).max_depth(e);
+        let e = return_if_ok!(term.as_match(to!(ast::StringLit))).max_depth(e);
+        let e = return_if_ok!(term.as_match(to!(ast::CharLit))).max_depth(e);
+        let e = return_if_ok!(term.as_match(to!(ast::AtomLit))).max_depth(e);
+        let e = return_if_ok!(term.as_match(to!(ast::Variable))).max_depth(e);
+        let e = return_if_ok!(term.as_match(to!(ast::Tuple<_>))).max_depth(e);
+        let e = return_if_ok!(term.as_match(to!(ast::Nil))).max_depth(e);
+        let e = return_if_ok!(term.as_match(to!(ast::Cons<_>))).max_depth(e);
+        let e = return_if_ok!(term.as_match(to!(ast::Binary<_>))).max_depth(e);
+        let e = return_if_ok!(term.as_match(to!(ast::UnaryOp<_>))).max_depth(e);
+        let e = return_if_ok!(term.as_match(to!(ast::BinaryOp<_>))).max_depth(e);
+        let e = return_if_ok!(term.as_match(to!(ast::Record<_>))).max_depth(e);
+        let e = return_if_ok!(term.as_match(to!(ast::RecordIndex<_>))).max_depth(e);
+        let e = return_if_ok!(term.as_match(to!(ast::LocalCall<_>))).max_depth(e);
+        let e = return_if_ok!(term.as_match(to!(ast::RemoteCall<_>))).max_depth(e);
+        Err(e)
     }
 }
-impl FromTerm for ast::form::ModuleAttr {
-    fn from(term: &eetf::Term) -> Option<Self> {
-        ("attribute", I32, "module", Atom)
-            .map_match(term, |(_, line, _, name)| Self::new(line, name.to_string()))
+impl<'a> FromTerm<'a> for ast::form::ModuleAttr {
+    fn try_from(term: &'a eetf::Term) -> Result<Self, Unmatch<'a>> {
+        term.as_match(("attribute", I32, "module", atom()))
+            .map(|(_, line, _, name)| Self::new(line, name.to_string()))
     }
 }
-impl FromTerm for ast::form::FileAttr {
-    fn from(term: &eetf::Term) -> Option<Self> {
-        ("attribute", I32, "file", (Str, I32))
-            .map_match(term, |(_, line, _, (original_file, original_line))| {
+impl<'a> FromTerm<'a> for ast::form::FileAttr {
+    fn try_from(term: &'a eetf::Term) -> Result<Self, Unmatch<'a>> {
+        term.as_match(("attribute", I32, "file", (Str(Ascii), I32)))
+            .map(|(_, line, _, (original_file, original_line))| {
                 Self::new(line, original_file, original_line)
             })
     }
 }
-impl FromTerm for ast::form::BehaviourAttr {
-    fn from(term: &eetf::Term) -> Option<Self> {
-        ("attribute", I32, Either("behaviour", "behavior"), Atom)
-            .map_match(term, |(_, line, british, name)| {
-                Self::new(line, name.to_string()).british(british.is_ok())
+impl<'a> FromTerm<'a> for ast::form::BehaviourAttr {
+    fn try_from(term: &'a eetf::Term) -> Result<Self, Unmatch<'a>> {
+        term.as_match(("attribute", I32, Or(("behaviour", "behavior")), atom()))
+            .map(|(_, line, spell, name)| {
+                let is_british = spell.is_a();
+                Self::new(line, name.to_string()).british(is_british)
             })
     }
 }
-impl FromTerm for ast::form::RecordDecl {
-    fn from(term: &eetf::Term) -> Option<Self> {
-        ("attribute", I32, "record", (Atom, List(to::<ast::form::RecordFieldDecl>())))
-            .map_match(term,
-                       |(_, line, _, (name, fields))| Self::new(line, name.to_string(), fields))
+impl<'a> FromTerm<'a> for ast::form::RecordDecl {
+    fn try_from(term: &'a eetf::Term) -> Result<Self, Unmatch<'a>> {
+        term.as_match(("attribute",
+                       I32,
+                       "record",
+                       (atom(), VarList(to!(ast::form::RecordFieldDecl)))))
+            .map(|(_, line, _, (name, fields))| Self::new(line, name.to_string(), fields))
     }
 }
-impl FromTerm for ast::form::RecordFieldDecl {
-    fn from(term: &eetf::Term) -> Option<Self> {
-        None.or_else(|| {
-                ("record_field", I32, to!(ast::AtomLit))
-                    .map_match(term, |(_, line, name)| Self::new(line, name.value))
-            })
-            .or_else(|| {
-                ("record_field", I32, to!(ast::AtomLit), to!(ast::Expression))
-                    .map_match(term, |(_, line, name, value)| {
+impl<'a> FromTerm<'a> for ast::form::RecordFieldDecl {
+    fn try_from(term: &'a eetf::Term) -> Result<Self, Unmatch<'a>> {
+        term.as_match(Or((("record_field", I32, to!(ast::AtomLit)),
+                          ("record_field", I32, to!(ast::AtomLit), to!(ast::Expression)),
+                          ("typed_record_field", to!(ast::form::RecordFieldDecl), to!(ast::Type)))))
+            .map(|result| {
+                match result {
+                    Union3::A((_, line, name)) => Self::new(line, name.value),
+                    Union3::B((_, line, name, value)) => {
                         Self::new(line, name.value).default_value(value)
-                    })
-            })
-            .or_else(|| {
-                ("typed_record_field", to!(ast::form::RecordFieldDecl), to!(ast::Type))
-                    .map_match(term, |(_, field, type_)| field.typ(type_))
+                    }
+                    Union3::C((_, field, type_)) => field.typ(type_),
+                }
             })
     }
 }
-impl FromTerm for ast::AtomLit {
-    fn from(term: &eetf::Term) -> Option<Self> {
-        ("atom", I32, Atom).map_match(term, |(_, line, name)| Self::new(line, name.to_string()))
+impl<'a> FromTerm<'a> for ast::AtomLit {
+    fn try_from(term: &'a eetf::Term) -> Result<Self, Unmatch<'a>> {
+        term.as_match(("atom", I32, atom()))
+            .map(|(_, line, name)| Self::new(line, name.to_string()))
     }
 }
-impl FromTerm for ast::IntegerLit {
-    fn from(term: &eetf::Term) -> Option<Self> {
-        ("integer", I32, Int).map_match(term, |(_, line, value)| Self::new(line, value))
+impl<'a> FromTerm<'a> for ast::IntegerLit {
+    fn try_from(term: &'a eetf::Term) -> Result<Self, Unmatch<'a>> {
+        // FIXME: Int => Uint
+        term.as_match(("integer", I32, Int))
+            .map(|(_, line, value)| Self::new(line, value))
     }
 }
-impl FromTerm for ast::CharLit {
-    fn from(term: &eetf::Term) -> Option<Self> {
-        use std::char;
-        ("char", I32, U32).map_match(term, |(_, line, value)| {
-            Self::new(line, char::from_u32(value).unwrap())
-        }) // XXX
+impl<'a> FromTerm<'a> for ast::CharLit {
+    fn try_from(term: &'a eetf::Term) -> Result<Self, Unmatch<'a>> {
+        term.as_match(("char", I32, Unicode))
+            .map(|(_, line, ch)| Self::new(line, ch))
     }
 }
-impl FromTerm for ast::FloatLit {
-    fn from(term: &eetf::Term) -> Option<Self> {
-        ("float", I32, F64).map_match(term, |(_, line, value)| Self::new(line, value))
+impl<'a> FromTerm<'a> for ast::FloatLit {
+    fn try_from(term: &'a eetf::Term) -> Result<Self, Unmatch<'a>> {
+        term.as_match(("float", I32, F64))
+            .map(|(_, line, value)| Self::new(line, value))
     }
 }
-impl FromTerm for ast::StringLit {
-    fn from(term: &eetf::Term) -> Option<Self> {
-        ("string", I32, Str).map_match(term, |(_, line, value)| Self::new(line, value))
+impl<'a> FromTerm<'a> for ast::StringLit {
+    fn try_from(term: &'a eetf::Term) -> Result<Self, Unmatch<'a>> {
+        term.as_match(("string", I32, Str(Unicode)))
+            .map(|(_, line, value)| Self::new(line, value))
     }
 }
-impl FromTerm for ast::Variable {
-    fn from(term: &eetf::Term) -> Option<Self> {
-        ("var", I32, Atom).map_match(term, |(_, line, name)| Self::new(line, name.to_string()))
+impl<'a> FromTerm<'a> for ast::Variable {
+    fn try_from(term: &'a eetf::Term) -> Result<Self, Unmatch<'a>> {
+        term.as_match(("var", I32, atom()))
+            .map(|(_, line, name)| Self::new(line, name.to_string()))
     }
 }
-impl FromTerm for ast::form::TypeDecl {
-    fn from(term: &eetf::Term) -> Option<Self> {
-        ("attribute",
-         I32,
-         Either("opaque", "type"),
-         (Atom, to!(ast::Type), List(to!(ast::Variable))))
-            .map_match(term, |(_, line, is_opaque, (name, type_, vars))| {
-                Self::new(line, name.to_string(), vars, type_).opaque(is_opaque.is_ok())
+impl<'a> FromTerm<'a> for ast::form::TypeDecl {
+    fn try_from(term: &'a eetf::Term) -> Result<Self, Unmatch<'a>> {
+        term.as_match(("attribute",
+                       I32,
+                       Or(("opaque", "type")),
+                       (atom(), to!(ast::Type), VarList(to!(ast::Variable)))))
+            .map(|(_, line, kind, (name, type_, vars))| {
+                Self::new(line, name.to_string(), vars, type_).opaque(kind.is_a())
             })
     }
 }
-impl FromTerm for ast::form::FunDecl {
-    fn try_from(term: &eetf::Term) -> Result<Self, Option<&eetf::Term>> {
-        ("function", I32, Atom, U32, List(to!(ast::Clause))).try_map_match(term, |(_,
-                                                                             line,
-                                                                             name,
-                                                                             _,
-                                                                             clauses)| {
-            Self::new(line, name.to_string(), clauses)
-        })
+impl<'a> FromTerm<'a> for ast::form::FunDecl {
+    fn try_from(term: &'a eetf::Term) -> Result<Self, Unmatch<'a>> {
+        term.as_match(("function", I32, atom(), U32, VarList(to!(ast::Clause))))
+            .map(|(_, line, name, _, clauses)| Self::new(line, name.to_string(), clauses))
     }
 }
-impl FromTerm for ast::form::FunSpec {
-    fn from(term: &eetf::Term) -> Option<Self> {
-        None.or_else(|| {
-                ("attribute",
-                 I32,
-                 Either("callback", "spec"),
-                 ((Atom, U32), List(to!(ast::FunctionType))))
-                    .map_match(term, |(_, line, is_callback, ((name, _), types))| {
-                        Self::new(line, name.to_string(), types).callback(is_callback.is_ok())
-                    })
-            })
-            .or_else(|| {
-                ("attribute", I32, "spec", ((Atom, Atom, U32), List(to!(ast::FunctionType))))
-                    .map_match(term, |(_, line, _, ((module, name, _), types))| {
-                        Self::new(line, name.to_string(), types).module(module.to_string())
-                    })
+impl<'a> FromTerm<'a> for ast::form::FunSpec {
+    fn try_from(term: &'a eetf::Term) -> Result<Self, Unmatch<'a>> {
+        term.as_match(Or((("attribute",
+                           I32,
+                           Or(("callback", "spec")),
+                           ((atom(), U32), VarList(to!(ast::FunctionType)))),
+                          ("attribute",
+                           I32,
+                           "spec",
+                           ((atom(), atom(), U32), VarList(to!(ast::FunctionType)))))))
+            .map(|result| match result {
+                Union2::A((_, line, tag, ((name, _), types))) => {
+                    let is_callback = tag.is_a();
+                    Self::new(line, name.to_string(), types).callback(is_callback)
+                }
+                Union2::B((_, line, _, ((module, name, _), types))) => {
+                    Self::new(line, name.to_string(), types).module(module.to_string())
+                }
             })
     }
 }
-impl FromTerm for ast::form::ExportAttr {
-    fn from(term: &eetf::Term) -> Option<Self> {
-        ("attribute", I32, "export", List((Atom, U32))).map_match(term, |(_, line, _, functions)| {
-            Self::new(line,
-                      functions.into_iter()
-                          .map(|(f, a)| ast::form::Export::new(f.to_string(), a))
-                          .collect())
-        })
+impl<'a> FromTerm<'a> for ast::form::ExportAttr {
+    fn try_from(term: &'a eetf::Term) -> Result<Self, Unmatch<'a>> {
+        term.as_match(("attribute", I32, "export", VarList((atom(), U32))))
+            .map(|(_, line, _, functions)| {
+                Self::new(line,
+                          functions.into_iter()
+                              .map(|(f, a)| ast::form::Export::new(f.to_string(), a))
+                              .collect())
+            })
     }
 }
-impl FromTerm for ast::form::ImportAttr {
-    fn from(term: &eetf::Term) -> Option<Self> {
-        ("attribute", I32, "import", (Atom, List((Atom, U32))))
-            .map_match(term, |(_, line, _, (module, functions))| {
+impl<'a> FromTerm<'a> for ast::form::ImportAttr {
+    fn try_from(term: &'a eetf::Term) -> Result<Self, Unmatch<'a>> {
+        term.as_match(("attribute", I32, "import", (atom(), VarList((atom(), U32)))))
+            .map(|(_, line, _, (module, functions))| {
                 Self::new(line,
                           module.to_string(),
                           functions.into_iter()
@@ -764,10 +757,10 @@ impl FromTerm for ast::form::ImportAttr {
             })
     }
 }
-impl FromTerm for ast::form::ExportTypeAttr {
-    fn from(term: &eetf::Term) -> Option<Self> {
-        ("attribute", I32, "export_type", List((Atom, U32)))
-            .map_match(term, |(_, line, _, export_types)| {
+impl<'a> FromTerm<'a> for ast::form::ExportTypeAttr {
+    fn try_from(term: &'a eetf::Term) -> Result<Self, Unmatch<'a>> {
+        term.as_match(("attribute", I32, "export_type", VarList((atom(), U32))))
+            .map(|(_, line, _, export_types)| {
                 Self::new(line,
                           export_types.into_iter()
                               .map(|(t, a)| ast::form::ExportType::new(t.to_string(), a))
@@ -775,23 +768,20 @@ impl FromTerm for ast::form::ExportTypeAttr {
             })
     }
 }
-impl FromTerm for ast::form::CompileOptionsAttr {
-    fn from(term: &eetf::Term) -> Option<Self> {
-        ("attribute", I32, "compile", Term).map_match(term, |(_, line, _, options)| {
-            Self::new(line, options.clone())
-        })
+impl<'a> FromTerm<'a> for ast::form::CompileOptionsAttr {
+    fn try_from(term: &'a eetf::Term) -> Result<Self, Unmatch<'a>> {
+        term.as_match(("attribute", I32, "compile", any()))
+            .map(|(_, line, _, options)| Self::new(line, options.clone()))
     }
 }
-impl FromTerm for ast::form::WildAttr {
-    fn from(term: &eetf::Term) -> Option<Self> {
-        ("attribute", I32, Atom, Term).map_match(term, |(_, line, name, value)| {
-            Self::new(line, name.to_string(), value.clone())
-        })
+impl<'a> FromTerm<'a> for ast::form::WildAttr {
+    fn try_from(term: &'a eetf::Term) -> Result<Self, Unmatch<'a>> {
+        term.as_match(("attribute", I32, atom(), any()))
+            .map(|(_, line, name, value)| Self::new(line, name.to_string(), value.clone()))
     }
 }
-impl FromTerm for ast::form::Eof {
-    fn from(term: &eetf::Term) -> Option<Self> {
-        ("eof", I32).map_match(term, |(_, line)| Self::new(line))
+impl<'a> FromTerm<'a> for ast::form::Eof {
+    fn try_from(term: &'a eetf::Term) -> Result<Self, Unmatch<'a>> {
+        term.as_match(("eof", I32)).map(|(_, line)| Self::new(line))
     }
 }
-type Line = I32;

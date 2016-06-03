@@ -27,8 +27,6 @@ pub mod guard;
 pub mod typ;
 pub mod common;
 
-pub mod matcher;
-
 pub type LineNum = i32;
 pub type Arity = u32;
 
