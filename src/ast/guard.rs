@@ -1,6 +1,7 @@
 //! Guards
 //!
 //! See: [6.6 Guards](http://erlang.org/doc/apps/erts/absform.html#id88356)
+use ast;
 use ast::literal;
 use ast::common;
 
@@ -60,3 +61,25 @@ impl_from!(Guard::Record(Record));
 impl_from!(Guard::RecordIndex(RecordIndex));
 impl_from!(Guard::LocalCall(LocalCall));
 impl_from!(Guard::RemoteCall(RemoteCall));
+impl ast::Node for Guard {
+    fn line(&self) -> ast::LineNum {
+        match *self {
+            Guard::Integer(ref x) => x.line(),
+            Guard::Float(ref x) => x.line(),
+            Guard::String(ref x) => x.line(),
+            Guard::Char(ref x) => x.line(),
+            Guard::Atom(ref x) => x.line(),
+            Guard::Var(ref x) => x.line(),
+            Guard::Tuple(ref x) => x.line(),
+            Guard::Nil(ref x) => x.line(),
+            Guard::Cons(ref x) => x.line(),
+            Guard::Binary(ref x) => x.line(),
+            Guard::UnaryOp(ref x) => x.line(),
+            Guard::BinaryOp(ref x) => x.line(),
+            Guard::Record(ref x) => x.line(),
+            Guard::RecordIndex(ref x) => x.line(),
+            Guard::LocalCall(ref x) => x.line(),
+            Guard::RemoteCall(ref x) => x.line(),
+        }
+    }
+}

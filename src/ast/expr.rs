@@ -78,6 +78,40 @@ impl_from!(Expression::Receive(Receive));
 impl_from!(Expression::InternalFun(common::InternalFun));
 impl_from!(Expression::ExternalFun(common::ExternalFun));
 impl_from!(Expression::AnonymousFun(AnonymousFun));
+impl ast::Node for Expression {
+    fn line(&self) -> ast::LineNum {
+        match *self {
+            Expression::Integer(ref x) => x.line(),
+            Expression::Float(ref x) => x.line(),
+            Expression::String(ref x) => x.line(),
+            Expression::Char(ref x) => x.line(),
+            Expression::Atom(ref x) => x.line(),
+            Expression::Match(ref x) => x.line(),
+            Expression::Var(ref x) => x.line(),
+            Expression::Tuple(ref x) => x.line(),
+            Expression::Nil(ref x) => x.line(),
+            Expression::Cons(ref x) => x.line(),
+            Expression::Binary(ref x) => x.line(),
+            Expression::UnaryOp(ref x) => x.line(),
+            Expression::BinaryOp(ref x) => x.line(),
+            Expression::Record(ref x) => x.line(),
+            Expression::RecordIndex(ref x) => x.line(),
+            Expression::Map(ref x) => x.line(),
+            Expression::Catch(ref x) => x.line(),
+            Expression::LocalCall(ref x) => x.line(),
+            Expression::RemoteCall(ref x) => x.line(),
+            Expression::Comprehension(ref x) => x.line(),
+            Expression::Block(ref x) => x.line(),
+            Expression::If(ref x) => x.line(),
+            Expression::Case(ref x) => x.line(),
+            Expression::Try(ref x) => x.line(),
+            Expression::Receive(ref x) => x.line(),
+            Expression::InternalFun(ref x) => x.line(),
+            Expression::ExternalFun(ref x) => x.line(),
+            Expression::AnonymousFun(ref x) => x.line(),
+        }
+    }
+}
 impl Expression {
     pub fn atom(line: ast::LineNum, name: String) -> Self {
         Expression::Atom(Box::new(literal::Atom::new(line, name)))

@@ -1,6 +1,7 @@
 //! Patterns
 //!
 //! See: [6.3 Patterns](http://erlang.org/doc/apps/erts/absform.html#id87135)
+use ast;
 use ast::literal;
 use ast::common;
 
@@ -49,3 +50,25 @@ impl_from!(Pattern::BinaryOp(BinaryOp));
 impl_from!(Pattern::Record(Record));
 impl_from!(Pattern::RecordIndex(RecordIndex));
 impl_from!(Pattern::Map(Map));
+impl ast::Node for Pattern {
+    fn line(&self) -> ast::LineNum {
+        match *self {
+            Pattern::Integer(ref x) => x.line(),
+            Pattern::Float(ref x) => x.line(),
+            Pattern::String(ref x) => x.line(),
+            Pattern::Char(ref x) => x.line(),
+            Pattern::Atom(ref x) => x.line(),
+            Pattern::Var(ref x) => x.line(),
+            Pattern::Match(ref x) => x.line(),
+            Pattern::Tuple(ref x) => x.line(),
+            Pattern::Nil(ref x) => x.line(),
+            Pattern::Cons(ref x) => x.line(),
+            Pattern::Binary(ref x) => x.line(),
+            Pattern::UnaryOp(ref x) => x.line(),
+            Pattern::BinaryOp(ref x) => x.line(),
+            Pattern::Record(ref x) => x.line(),
+            Pattern::RecordIndex(ref x) => x.line(),
+            Pattern::Map(ref x) => x.line(),
+        }
+    }
+}

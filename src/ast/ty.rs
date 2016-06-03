@@ -49,6 +49,31 @@ impl_from!(Type::AnyTuple(AnyTuple));
 impl_from!(Type::Tuple(Tuple));
 impl_from!(Type::Union(Union));
 impl_from!(Type::User(UserType));
+impl ast::Node for Type {
+    fn line(&self) -> ast::LineNum {
+        match *self {
+            Type::Integer(ref x) => x.line(),
+            Type::Atom(ref x) => x.line(),
+            Type::Var(ref x) => x.line(),
+            Type::Annotated(ref x) => x.line(),
+            Type::UnaryOp(ref x) => x.line(),
+            Type::BinaryOp(ref x) => x.line(),
+            Type::BitString(ref x) => x.line(),
+            Type::Nil(ref x) => x.line(),
+            Type::AnyFun(ref x) => x.line(),
+            Type::Function(ref x) => x.line(),
+            Type::Range(ref x) => x.line(),
+            Type::Map(ref x) => x.line(),
+            Type::BuiltIn(ref x) => x.line(),                        
+            Type::Record(ref x) => x.line(),
+            Type::Remote(ref x) => x.line(),
+            Type::AnyTuple(ref x) => x.line(),
+            Type::Tuple(ref x) => x.line(),
+            Type::Union(ref x) => x.line(),
+            Type::User(ref x) => x.line(),
+        }
+    }
+}
 impl Type {
     pub fn any(line: ast::LineNum) -> Self {
         Type::BuiltIn(Box::new(BuiltInType::new(line, "any".to_string(), Vec::new())))
