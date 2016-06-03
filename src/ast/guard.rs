@@ -4,8 +4,6 @@
 use ast::literal;
 use ast::common;
 
-pub type Var = common::Variable;
-pub type Nil = common::Nil;
 pub type Tuple = common::Tuple<Guard>;
 pub type Cons = common::Cons<Guard>;
 pub type Binary = common::Binary<Guard>;
@@ -34,9 +32,9 @@ pub enum Guard {
     String(Box<literal::Str>),
     Char(Box<literal::Char>),
     Atom(Box<literal::Atom>),
-    Var(Box<Var>),
+    Var(Box<common::Var>),
     Tuple(Box<Tuple>),
-    Nil(Box<Nil>),
+    Nil(Box<common::Nil>),
     Cons(Box<Cons>),
     Binary(Box<Binary>),
     UnaryOp(Box<UnaryOp>),
@@ -51,9 +49,9 @@ impl_from!(Guard::Float(literal::Float));
 impl_from!(Guard::String(literal::Str));
 impl_from!(Guard::Char(literal::Char));
 impl_from!(Guard::Atom(literal::Atom));
-impl_from!(Guard::Var(Var));
+impl_from!(Guard::Var(common::Var));
 impl_from!(Guard::Tuple(Tuple));
-impl_from!(Guard::Nil(Nil));
+impl_from!(Guard::Nil(common::Nil));
 impl_from!(Guard::Cons(Cons));
 impl_from!(Guard::Binary(Binary));
 impl_from!(Guard::UnaryOp(UnaryOp));

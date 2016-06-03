@@ -4,8 +4,6 @@
 use ast::literal;
 use ast::common;
 
-pub type Var = common::Variable;
-pub type Nil = common::Nil;
 pub type Match = common::Match<Pattern, Pattern>;
 pub type Tuple = common::Tuple<Pattern>;
 pub type Cons = common::Cons<Pattern>;
@@ -23,10 +21,10 @@ pub enum Pattern {
     String(Box<literal::Str>),
     Char(Box<literal::Char>),
     Atom(Box<literal::Atom>),
-    Var(Box<Var>),
+    Var(Box<common::Var>),
     Match(Box<Match>),
     Tuple(Box<Tuple>),
-    Nil(Box<Nil>),
+    Nil(Box<common::Nil>),
     Cons(Box<Cons>),
     Binary(Box<Binary>),
     UnaryOp(Box<UnaryOp>),
@@ -40,10 +38,10 @@ impl_from!(Pattern::Float(literal::Float));
 impl_from!(Pattern::String(literal::Str));
 impl_from!(Pattern::Char(literal::Char));
 impl_from!(Pattern::Atom(literal::Atom));
-impl_from!(Pattern::Var(Var));
+impl_from!(Pattern::Var(common::Var));
 impl_from!(Pattern::Match(Match));
 impl_from!(Pattern::Tuple(Tuple));
-impl_from!(Pattern::Nil(Nil));
+impl_from!(Pattern::Nil(common::Nil));
 impl_from!(Pattern::Cons(Cons));
 impl_from!(Pattern::Binary(Binary));
 impl_from!(Pattern::UnaryOp(UnaryOp));

@@ -15,7 +15,7 @@ use std::path::Path;
 /// Abstract Syntax Tree
 #[derive(Debug)]
 pub struct AST {
-    pub module: ast::form::ModuleDecl,
+    pub module: ast::ModuleDecl,
 }
 impl AST {
     /// Builds AST from the BEAM file

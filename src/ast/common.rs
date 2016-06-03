@@ -1,35 +1,15 @@
-use ast::LineNum;
-use ast::Arity;
-use ast::expr::Expression;
-
-macro_rules! impl_node_1 {
-    ($x:ty) => {
-        impl<T> ::ast::Node for $x {
-            fn line(&self) -> LineNum {
-                self.line
-            }
-        }
-    }
-}
-macro_rules! impl_node_2 {
-    ($x:ty) => {
-        impl<T,U> ::ast::Node for $x {
-            fn line(&self) -> LineNum {
-                self.line
-            }
-        }
-    }
-}
+use ast;
+use ast::expr;
 
 #[derive(Debug,Clone)]
 pub struct Match<L, R> {
-    pub line: LineNum,
+    pub line: ast::LineNum,
     pub left: L,
     pub right: R,
 }
-impl_node_2!(Match<T,U>);
+impl_node!(Match<T,U>);
 impl<L, R> Match<L, R> {
-    pub fn new(line: LineNum, left: L, right: R) -> Self {
+    pub fn new(line: ast::LineNum, left: L, right: R) -> Self {
         Match {
             line: line,
             left: left,
@@ -40,12 +20,12 @@ impl<L, R> Match<L, R> {
 
 #[derive(Debug,Clone)]
 pub struct Tuple<T> {
-    pub line: LineNum,
+    pub line: ast::LineNum,
     pub elements: Vec<T>,
 }
-impl_node_1!(Tuple<T>);
+impl_node!(Tuple<T>);
 impl<T> Tuple<T> {
-    pub fn new(line: LineNum, elements: Vec<T>) -> Self {
+    pub fn new(line: ast::LineNum, elements: Vec<T>) -> Self {
         Tuple {
             line: line,
             elements: elements,
@@ -55,24 +35,24 @@ impl<T> Tuple<T> {
 
 #[derive(Debug,Clone)]
 pub struct Nil {
-    pub line: LineNum,
+    pub line: ast::LineNum,
 }
 impl_node!(Nil);
 impl Nil {
-    pub fn new(line: LineNum) -> Self {
+    pub fn new(line: ast::LineNum) -> Self {
         Nil { line: line }
     }
 }
 
 #[derive(Debug,Clone)]
 pub struct Cons<T> {
-    pub line: LineNum,
+    pub line: ast::LineNum,
     pub head: T,
     pub tail: T,
 }
-impl_node_1!(Cons<T>);
+impl_node!(Cons<T>);
 impl<T> Cons<T> {
-    pub fn new(line: LineNum, head: T, tail: T) -> Self {
+    pub fn new(line: ast::LineNum, head: T, tail: T) -> Self {
         Cons {
             line: line,
             head: head,
@@ -83,12 +63,12 @@ impl<T> Cons<T> {
 
 #[derive(Debug,Clone)]
 pub struct Binary<T> {
-    pub line: LineNum,
+    pub line: ast::LineNum,
     pub elements: Vec<BinElement<T>>,
 }
-impl_node_1!(Binary<T>);
+impl_node!(Binary<T>);
 impl<T> Binary<T> {
-    pub fn new(line: LineNum, elements: Vec<BinElement<T>>) -> Self {
+    pub fn new(line: ast::LineNum, elements: Vec<BinElement<T>>) -> Self {
         Binary {
             line: line,
             elements: elements,
@@ -98,14 +78,14 @@ impl<T> Binary<T> {
 
 #[derive(Debug,Clone)]
 pub struct BinElement<T> {
-    pub line: LineNum,
+    pub line: ast::LineNum,
     pub element: T,
     pub size: Option<T>,
     pub tsl: Option<Vec<BinElementTypeSpec>>,
 }
-impl_node_1!(BinElement<T>);
+impl_node!(BinElement<T>);
 impl<T> BinElement<T> {
-    pub fn new(line: LineNum, element: T) -> Self {
+    pub fn new(line: ast::LineNum, element: T) -> Self {
         BinElement {
             line: line,
             element: element,
@@ -139,13 +119,13 @@ impl BinElementTypeSpec {
 
 #[derive(Debug,Clone)]
 pub struct UnaryOp<T> {
-    pub line: LineNum,
+    pub line: ast::LineNum,
     pub operator: String,
     pub operand: T,
 }
-impl_node_1!(UnaryOp<T>);
+impl_node!(UnaryOp<T>);
 impl<T> UnaryOp<T> {
-    pub fn new(line: LineNum, operator: String, operand: T) -> Self {
+    pub fn new(line: ast::LineNum, operator: String, operand: T) -> Self {
         UnaryOp {
             line: line,
             operator: operator,
@@ -156,14 +136,14 @@ impl<T> UnaryOp<T> {
 
 #[derive(Debug,Clone)]
 pub struct BinaryOp<T> {
-    pub line: LineNum,
+    pub line: ast::LineNum,
     pub operator: String,
     pub left_operand: T,
     pub right_operand: T,
 }
-impl_node_1!(BinaryOp<T>);
+impl_node!(BinaryOp<T>);
 impl<T> BinaryOp<T> {
-    pub fn new(line: LineNum, operator: String, left_operand: T, right_operand: T) -> Self {
+    pub fn new(line: ast::LineNum, operator: String, left_operand: T, right_operand: T) -> Self {
         BinaryOp {
             line: line,
             operator: operator,
@@ -175,14 +155,14 @@ impl<T> BinaryOp<T> {
 
 #[derive(Debug,Clone)]
 pub struct Record<T> {
-    pub line: LineNum,
-    pub base: Option<Expression>,
+    pub line: ast::LineNum,
+    pub base: Option<expr::Expression>,
     pub name: String,
     pub fields: Vec<RecordField<T>>,
 }
-impl_node_1!(Record<T>);
+impl_node!(Record<T>);
 impl<T> Record<T> {
-    pub fn new(line: LineNum, name: String, fields: Vec<RecordField<T>>) -> Self {
+    pub fn new(line: ast::LineNum, name: String, fields: Vec<RecordField<T>>) -> Self {
         Record {
             line: line,
             base: None,
@@ -190,7 +170,7 @@ impl<T> Record<T> {
             fields: fields,
         }
     }
-    pub fn base(mut self, base: Expression) -> Self {
+    pub fn base(mut self, base: expr::Expression) -> Self {
         self.base = Some(base);
         self
     }
@@ -198,13 +178,13 @@ impl<T> Record<T> {
 
 #[derive(Debug,Clone)]
 pub struct RecordField<T> {
-    pub line: LineNum,
+    pub line: ast::LineNum,
     pub name: Option<String>, // `None` means `_` (i.e., default value)
     pub value: T,
 }
-impl_node_1!(RecordField<T>);
+impl_node!(RecordField<T>);
 impl<T> RecordField<T> {
-    pub fn new(line: LineNum, name: Option<String>, value: T) -> Self {
+    pub fn new(line: ast::LineNum, name: Option<String>, value: T) -> Self {
         RecordField {
             line: line,
             name: name,
@@ -213,17 +193,16 @@ impl<T> RecordField<T> {
     }
 }
 
-// TODO: => RecordField<T>
 #[derive(Debug,Clone)]
 pub struct RecordIndex<T> {
-    pub line: LineNum,
+    pub line: ast::LineNum,
     pub base: Option<T>,
     pub record: String,
     pub field: String,
 }
-impl_node_1!(RecordIndex<T>);
+impl_node!(RecordIndex<T>);
 impl<T> RecordIndex<T> {
-    pub fn new(line: LineNum, record: String, field: String) -> Self {
+    pub fn new(line: ast::LineNum, record: String, field: String) -> Self {
         RecordIndex {
             line: line,
             record: record,
@@ -239,20 +218,20 @@ impl<T> RecordIndex<T> {
 
 #[derive(Debug,Clone)]
 pub struct Map<T> {
-    pub line: LineNum,
-    pub base: Option<Expression>,
+    pub line: ast::LineNum,
+    pub base: Option<expr::Expression>,
     pub pairs: Vec<MapPair<T>>,
 }
-impl_node_1!(Map<T>);
+impl_node!(Map<T>);
 impl<T> Map<T> {
-    pub fn new(line: LineNum, pairs: Vec<MapPair<T>>) -> Self {
+    pub fn new(line: ast::LineNum, pairs: Vec<MapPair<T>>) -> Self {
         Map {
             line: line,
             base: None,
             pairs: pairs,
         }
     }
-    pub fn base(mut self, base: Expression) -> Self {
+    pub fn base(mut self, base: expr::Expression) -> Self {
         self.base = Some(base);
         self
     }
@@ -260,14 +239,14 @@ impl<T> Map<T> {
 
 #[derive(Debug,Clone)]
 pub struct MapPair<T> {
-    pub line: LineNum,
+    pub line: ast::LineNum,
     pub is_assoc: bool,
     pub key: T,
     pub value: T,
 }
-impl_node_1!(MapPair<T>);
+impl_node!(MapPair<T>);
 impl<T> MapPair<T> {
-    pub fn new(line: LineNum, is_assoc: bool, key: T, value: T) -> Self {
+    pub fn new(line: ast::LineNum, is_assoc: bool, key: T, value: T) -> Self {
         MapPair {
             line: line,
             is_assoc: is_assoc,
@@ -279,13 +258,13 @@ impl<T> MapPair<T> {
 
 #[derive(Debug,Clone)]
 pub struct LocalCall<T> {
-    pub line: LineNum,
+    pub line: ast::LineNum,
     pub function: T,
     pub args: Vec<T>,
 }
-impl_node_1!(LocalCall<T>);
+impl_node!(LocalCall<T>);
 impl<T> LocalCall<T> {
-    pub fn new(line: LineNum, function: T, args: Vec<T>) -> Self {
+    pub fn new(line: ast::LineNum, function: T, args: Vec<T>) -> Self {
         LocalCall {
             line: line,
             function: function,
@@ -296,14 +275,14 @@ impl<T> LocalCall<T> {
 
 #[derive(Debug,Clone)]
 pub struct RemoteCall<T> {
-    pub line: LineNum,
+    pub line: ast::LineNum,
     pub module: T,
     pub function: T,
     pub args: Vec<T>,
 }
-impl_node_1!(RemoteCall<T>);
+impl_node!(RemoteCall<T>);
 impl<T> RemoteCall<T> {
-    pub fn new(line: LineNum, module: T, function: T, args: Vec<T>) -> Self {
+    pub fn new(line: ast::LineNum, module: T, function: T, args: Vec<T>) -> Self {
         RemoteCall {
             line: line,
             module: module,
@@ -315,13 +294,13 @@ impl<T> RemoteCall<T> {
 
 #[derive(Debug,Clone)]
 pub struct InternalFun {
-    pub line: LineNum,
+    pub line: ast::LineNum,
     pub function: String,
-    pub arity: Arity,
+    pub arity: ast::Arity,
 }
 impl_node!(InternalFun);
 impl InternalFun {
-    pub fn new(line: LineNum, function: String, arity: Arity) -> Self {
+    pub fn new(line: ast::LineNum, function: String, arity: ast::Arity) -> Self {
         InternalFun {
             line: line,
             function: function,
@@ -332,14 +311,18 @@ impl InternalFun {
 
 #[derive(Debug,Clone)]
 pub struct ExternalFun {
-    pub line: LineNum,
-    pub module: Expression,
-    pub function: Expression,
-    pub arity: Expression,
+    pub line: ast::LineNum,
+    pub module: expr::Expression,
+    pub function: expr::Expression,
+    pub arity: expr::Expression,
 }
 impl_node!(ExternalFun);
 impl ExternalFun {
-    pub fn new(line: LineNum, module: Expression, function: Expression, arity: Expression) -> Self {
+    pub fn new(line: ast::LineNum,
+               module: expr::Expression,
+               function: expr::Expression,
+               arity: expr::Expression)
+               -> Self {
         ExternalFun {
             line: line,
             module: module,
@@ -349,16 +332,15 @@ impl ExternalFun {
     }
 }
 
-// Others
 #[derive(Debug,Clone)]
-pub struct Variable {
-    pub line: LineNum,
+pub struct Var {
+    pub line: ast::LineNum,
     pub name: String,
 }
-impl_node!(Variable);
-impl Variable {
-    pub fn new(line: LineNum, name: String) -> Self {
-        Variable {
+impl_node!(Var);
+impl Var {
+    pub fn new(line: ast::LineNum, name: String) -> Self {
+        Var {
             line: line,
             name: name,
         }
