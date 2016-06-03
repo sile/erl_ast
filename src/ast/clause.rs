@@ -4,7 +4,7 @@
 use ast;
 use ast::LineNum;
 
-#[derive(Debug)]
+#[derive(Debug,Clone)]
 pub struct Clause {
     pub line: LineNum,
     pub patterns: Vec<ast::pattern::Pattern>,

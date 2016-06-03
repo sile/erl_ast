@@ -24,7 +24,7 @@ pub type Map = common::Map<Expression>;
 pub type InternalFun = common::InternalFun;
 pub type ExternalFun = common::ExternalFun;
 
-#[derive(Debug)]
+#[derive(Debug,Clone)]
 pub enum Expression {
     Integer(Box<literal::Integer>),
     Float(Box<literal::Float>),
@@ -89,7 +89,7 @@ impl Expression {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug,Clone)]
 pub struct Catch {
     pub line: LineNum,
     pub expr: Expression,
@@ -104,7 +104,7 @@ impl Catch {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug,Clone)]
 pub struct If {
     pub line: LineNum,
     pub clauses: Vec<Clause>,
@@ -119,7 +119,7 @@ impl If {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug,Clone)]
 pub struct Case {
     pub line: LineNum,
     pub expr: Expression,
@@ -136,7 +136,7 @@ impl Case {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug,Clone)]
 pub struct Try {
     pub line: LineNum,
     pub body: Vec<Expression>,
@@ -162,7 +162,7 @@ impl Try {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug,Clone)]
 pub struct Receive {
     pub line: LineNum,
     pub clauses: Vec<Clause>,
@@ -189,7 +189,7 @@ impl Receive {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug,Clone)]
 pub struct Block {
     pub line: LineNum,
     pub body: Vec<Expression>,
@@ -204,7 +204,7 @@ impl Block {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug,Clone)]
 pub struct Comprehension {
     pub line: LineNum,
     pub is_list: bool,
@@ -223,14 +223,14 @@ impl Comprehension {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug,Clone)]
 pub enum Qualifier {
     Generator(Generator),
     BitStringGenerator(Generator),
     Filter(Expression),
 }
 
-#[derive(Debug)]
+#[derive(Debug,Clone)]
 pub struct Generator {
     pub line: LineNum,
     pub pattern: ast::pattern::Pattern,
@@ -247,7 +247,7 @@ impl Generator {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug,Clone)]
 pub struct AnonymousFun {
     pub line: LineNum,
     pub name: Option<String>,

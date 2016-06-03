@@ -20,7 +20,8 @@ pub struct AST {
 impl AST {
     /// Builds AST from the BEAM file
     pub fn from_beam_file<P: AsRef<Path>>(beam_file: P) -> result::FromBeamResult<Self> {
-        let module = try!(ast::form::ModuleDecl::from_beam_file(beam_file));
+        let code = try!(format::raw_abstract_v1::AbstractCode::from_beam_file(beam_file));
+        let module = try!(code.to_module_decl());
         Ok(AST { module: module })
     }
 }

@@ -21,7 +21,7 @@ macro_rules! impl_node_2 {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug,Clone)]
 pub struct Match<L, R> {
     pub line: LineNum,
     pub left: L,
@@ -38,7 +38,7 @@ impl<L, R> Match<L, R> {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug,Clone)]
 pub struct Tuple<T> {
     pub line: LineNum,
     pub elements: Vec<T>,
@@ -53,7 +53,7 @@ impl<T> Tuple<T> {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug,Clone)]
 pub struct Nil {
     pub line: LineNum,
 }
@@ -64,7 +64,7 @@ impl Nil {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug,Clone)]
 pub struct Cons<T> {
     pub line: LineNum,
     pub head: T,
@@ -81,7 +81,7 @@ impl<T> Cons<T> {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug,Clone)]
 pub struct Binary<T> {
     pub line: LineNum,
     pub elements: Vec<BinElement<T>>,
@@ -96,7 +96,7 @@ impl<T> Binary<T> {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug,Clone)]
 pub struct BinElement<T> {
     pub line: LineNum,
     pub element: T,
@@ -123,7 +123,7 @@ impl<T> BinElement<T> {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug,Clone)]
 pub struct BinElementTypeSpec {
     pub name: String,
     pub value: Option<u64>,
@@ -137,7 +137,7 @@ impl BinElementTypeSpec {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug,Clone)]
 pub struct UnaryOp<T> {
     pub line: LineNum,
     pub operator: String,
@@ -154,7 +154,7 @@ impl<T> UnaryOp<T> {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug,Clone)]
 pub struct BinaryOp<T> {
     pub line: LineNum,
     pub operator: String,
@@ -173,7 +173,7 @@ impl<T> BinaryOp<T> {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug,Clone)]
 pub struct Record<T> {
     pub line: LineNum,
     pub base: Option<Expression>,
@@ -196,7 +196,7 @@ impl<T> Record<T> {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug,Clone)]
 pub struct RecordField<T> {
     pub line: LineNum,
     pub name: Option<String>, // `None` means `_` (i.e., default value)
@@ -214,7 +214,7 @@ impl<T> RecordField<T> {
 }
 
 // TODO: => RecordField<T>
-#[derive(Debug)]
+#[derive(Debug,Clone)]
 pub struct RecordIndex<T> {
     pub line: LineNum,
     pub base: Option<T>,
@@ -237,7 +237,7 @@ impl<T> RecordIndex<T> {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug,Clone)]
 pub struct Map<T> {
     pub line: LineNum,
     pub base: Option<Expression>,
@@ -258,7 +258,7 @@ impl<T> Map<T> {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug,Clone)]
 pub struct MapPair<T> {
     pub line: LineNum,
     pub is_assoc: bool,
@@ -277,7 +277,7 @@ impl<T> MapPair<T> {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug,Clone)]
 pub struct LocalCall<T> {
     pub line: LineNum,
     pub function: T,
@@ -294,7 +294,7 @@ impl<T> LocalCall<T> {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug,Clone)]
 pub struct RemoteCall<T> {
     pub line: LineNum,
     pub module: T,
@@ -313,7 +313,7 @@ impl<T> RemoteCall<T> {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug,Clone)]
 pub struct InternalFun {
     pub line: LineNum,
     pub function: String,
@@ -330,7 +330,7 @@ impl InternalFun {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug,Clone)]
 pub struct ExternalFun {
     pub line: LineNum,
     pub module: Expression,
@@ -350,7 +350,7 @@ impl ExternalFun {
 }
 
 // Others
-#[derive(Debug)]
+#[derive(Debug,Clone)]
 pub struct Variable {
     pub line: LineNum,
     pub name: String,

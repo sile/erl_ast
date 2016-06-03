@@ -11,7 +11,7 @@ pub type BinaryOp = common::BinaryOp<Type>;
 pub type Nil = common::Nil;
 
 // 6.7 Types
-#[derive(Debug)]
+#[derive(Debug,Clone)]
 pub enum Type {
     Atom(Box<literal::Atom>),
     Integer(Box<literal::Integer>),
@@ -58,7 +58,7 @@ impl Type {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug,Clone)]
 pub struct UserType {
     pub line: LineNum,
     pub name: String,
@@ -75,7 +75,7 @@ impl UserType {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug,Clone)]
 pub struct Union {
     pub line: LineNum,
     pub types: Vec<Type>,
@@ -90,7 +90,7 @@ impl Union {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug,Clone)]
 pub struct AnyTuple {
     pub line: LineNum,
 }
@@ -101,7 +101,7 @@ impl AnyTuple {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug,Clone)]
 pub struct Tuple {
     pub line: LineNum,
     pub elements: Vec<Type>,
@@ -116,7 +116,7 @@ impl Tuple {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug,Clone)]
 pub struct RemoteType {
     pub line: LineNum,
     pub module: String,
@@ -135,7 +135,7 @@ impl RemoteType {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug,Clone)]
 pub struct Record {
     pub line: LineNum,
     pub name: String,
@@ -152,7 +152,7 @@ impl Record {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug,Clone)]
 pub struct RecordField {
     pub line: LineNum,
     pub name: String,
@@ -169,7 +169,7 @@ impl RecordField {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug,Clone)]
 pub struct BuiltInType {
     pub line: LineNum,
     pub name: String,
@@ -186,7 +186,7 @@ impl BuiltInType {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug,Clone)]
 pub struct Map {
     pub line: LineNum,
     pub pairs: Vec<MapPair>,
@@ -201,7 +201,7 @@ impl Map {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug,Clone)]
 pub struct MapPair {
     pub line: LineNum,
     pub key: Type,
@@ -218,7 +218,7 @@ impl MapPair {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug,Clone)]
 pub struct Annotated {
     pub line: LineNum,
     pub name: Var,
@@ -235,7 +235,7 @@ impl Annotated {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug,Clone)]
 pub struct BitString {
     pub line: LineNum,
     pub bytes: u64,
@@ -252,7 +252,7 @@ impl BitString {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug,Clone)]
 pub struct AnyFun {
     pub line: LineNum,
     pub return_type: Option<Type>,
@@ -271,7 +271,7 @@ impl AnyFun {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug,Clone)]
 pub struct Fun {
     pub line: LineNum,
     pub args: Vec<Type>,
@@ -294,7 +294,7 @@ impl Fun {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug,Clone)]
 pub struct Constraint {
     pub line: LineNum,
     pub var: Var,
@@ -311,7 +311,7 @@ impl Constraint {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug,Clone)]
 pub struct Range {
     pub line: LineNum,
     pub low: Type,

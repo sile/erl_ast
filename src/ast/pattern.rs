@@ -16,7 +16,7 @@ pub type Record = common::Record<Pattern>;
 pub type RecordIndex = common::RecordIndex<Pattern>;
 pub type Map = common::Map<Pattern>;
 
-#[derive(Debug)]
+#[derive(Debug,Clone)]
 pub enum Pattern {
     Integer(Box<literal::Integer>),
     Float(Box<literal::Float>),

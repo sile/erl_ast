@@ -1,27 +1,18 @@
 //! Module Declarations and Forms
 //!
 //! See: [6.1 Module Declarations and Forms](http://erlang.org/doc/apps/erts/absform.html#id86691)
-use std::path::Path;
 use eetf;
-use result::FromBeamResult;
 use ast::LineNum;
 use ast::Arity;
 use ast::typ;
 use ast::expr;
-use format;
 
-#[derive(Debug)]
+#[derive(Debug,Clone)]
 pub struct ModuleDecl {
     pub forms: Vec<Form>,
 }
-impl ModuleDecl {
-    pub fn from_beam_file<P: AsRef<Path>>(path: P) -> FromBeamResult<Self> {
-        let code = try!(format::raw_abstract_v1::AbstractCode::from_beam_file(path));
-        code.to_module_decl()
-    }
-}
 
-#[derive(Debug)]
+#[derive(Debug,Clone)]
 pub enum Form {
     Module(ModuleAttr),
     Behaviour(BehaviourAttr),
@@ -51,7 +42,7 @@ impl_from!(Form::Attr(WildAttr));
 impl_from!(Form::Fun(FunDecl));
 impl_from!(Form::Eof(Eof));
 
-#[derive(Debug)]
+#[derive(Debug,Clone)]
 pub struct Eof {
     pub line: LineNum,
 }
@@ -62,7 +53,7 @@ impl Eof {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug,Clone)]
 pub struct ModuleAttr {
     pub line: LineNum,
     pub name: String,
@@ -77,7 +68,7 @@ impl ModuleAttr {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug,Clone)]
 pub struct BehaviourAttr {
     pub line: LineNum,
     pub is_british: bool,
@@ -98,7 +89,7 @@ impl BehaviourAttr {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug,Clone)]
 pub struct ExportAttr {
     pub line: LineNum,
     pub funs: Vec<Export>,
@@ -113,7 +104,7 @@ impl ExportAttr {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug,Clone)]
 pub struct ImportAttr {
     pub line: LineNum,
     pub module: String,
@@ -130,7 +121,7 @@ impl ImportAttr {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug,Clone)]
 pub struct ExportTypeAttr {
     pub line: LineNum,
     pub types: Vec<ExportType>,
@@ -145,7 +136,7 @@ impl ExportTypeAttr {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug,Clone)]
 pub struct CompileOptionsAttr {
     pub line: LineNum,
     pub options: eetf::Term,
@@ -160,7 +151,7 @@ impl CompileOptionsAttr {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug,Clone)]
 pub struct FileAttr {
     pub line: LineNum,
     pub original_file: String,
@@ -177,7 +168,7 @@ impl FileAttr {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug,Clone)]
 pub struct RecordDecl {
     pub line: LineNum,
     pub name: String,
@@ -194,7 +185,7 @@ impl RecordDecl {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug,Clone)]
 pub struct TypeDecl {
     pub line: LineNum,
     pub is_opaque: bool,
@@ -219,7 +210,7 @@ impl TypeDecl {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug,Clone)]
 pub struct FunSpec {
     pub line: LineNum,
     pub module: Option<String>,
@@ -248,7 +239,7 @@ impl FunSpec {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug,Clone)]
 pub struct WildAttr {
     pub line: LineNum,
     pub name: String,
@@ -265,7 +256,7 @@ impl WildAttr {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug,Clone)]
 pub struct FunDecl {
     pub line: LineNum,
     pub name: String,
@@ -282,7 +273,7 @@ impl FunDecl {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug,Clone)]
 pub struct RecordFieldDecl {
     pub line: LineNum,
     pub name: String,
@@ -309,7 +300,7 @@ impl RecordFieldDecl {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug,Clone)]
 pub struct Export {
     pub fun: String,
     pub arity: Arity,
@@ -323,7 +314,7 @@ impl Export {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug,Clone)]
 pub struct Import {
     pub fun: String,
     pub arity: Arity,
@@ -337,7 +328,7 @@ impl Import {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug,Clone)]
 pub struct ExportType {
     pub typ: String,
     pub arity: Arity,

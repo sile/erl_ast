@@ -17,7 +17,7 @@ pub type Map = common::Map<Guard>;
 pub type LocalCall = common::LocalCall<Guard>;
 pub type RemoteCall = common::RemoteCall<Guard>;
 
-#[derive(Debug)]
+#[derive(Debug,Clone)]
 pub struct OrGuard {
     and_guards: Vec<Guard>,
 }
@@ -27,7 +27,7 @@ impl OrGuard {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug,Clone)]
 pub enum Guard {
     Integer(Box<literal::Integer>),
     Float(Box<literal::Float>),

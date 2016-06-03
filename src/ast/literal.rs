@@ -4,7 +4,7 @@
 use num::bigint::BigInt;
 use ast::LineNum;
 
-#[derive(Debug)]
+#[derive(Debug,Clone)]
 pub struct Integer {
     pub line: LineNum,
     pub value: BigInt,
@@ -23,7 +23,7 @@ impl Integer {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug,Clone)]
 pub struct Char {
     pub line: LineNum,
     pub value: char,
@@ -38,7 +38,7 @@ impl Char {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug,Clone)]
 pub struct Float {
     pub line: LineNum,
     pub value: f64,
@@ -53,7 +53,7 @@ impl Float {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug,Clone)]
 pub struct Str {
     pub line: LineNum,
     pub value: String,
@@ -68,7 +68,7 @@ impl Str {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug,Clone)]
 pub struct Atom {
     pub line: LineNum,
     pub value: String,
