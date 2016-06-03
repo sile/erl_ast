@@ -1,3 +1,6 @@
+//! A Rust representation of Abstract Syntax Trees of Erlang modules
+//!
+//! See: [The Abstract Format](http://erlang.org/doc/apps/erts/absform.html)
 extern crate beam_file;
 extern crate eetf;
 extern crate num;
@@ -15,6 +18,7 @@ pub struct AST {
     pub module: ast::form::ModuleDecl,
 }
 impl AST {
+    /// Builds AST from the BEAM file
     pub fn from_beam_file<P: AsRef<Path>>(beam_file: P) -> result::BeamParseResult<Self> {
         let module = try!(ast::form::ModuleDecl::from_beam_file(beam_file));
         Ok(AST { module: module })
