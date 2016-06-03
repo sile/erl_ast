@@ -4,23 +4,25 @@
 use ast;
 use ast::LineNum;
 use ast::literal;
+use ast::clause;
+use ast::common;
 
-pub type Clause = ast::Clause;
-pub type Var = ast::Variable;
-pub type Nil = ast::Nil;
-pub type LocalCall = ast::LocalCall<Expression>;
-pub type RemoteCall = ast::RemoteCall<Expression>;
-pub type Match = ast::Match<ast::pattern::Pattern, Expression>;
-pub type Tuple = ast::Tuple<Expression>;
-pub type Cons = ast::Cons<Expression>;
-pub type Binary = ast::Binary<Expression>;
-pub type UnaryOp = ast::UnaryOp<Expression>;
-pub type BinaryOp = ast::BinaryOp<Expression>;
-pub type Record = ast::Record<Expression>;
-pub type RecordIndex = ast::RecordIndex<Expression>;
-pub type Map = ast::Map<Expression>;
-pub type InternalFun = ast::InternalFun;
-pub type ExternalFun = ast::ExternalFun;
+pub type Clause = clause::Clause;
+pub type Var = common::Variable;
+pub type Nil = common::Nil;
+pub type LocalCall = common::LocalCall<Expression>;
+pub type RemoteCall = common::RemoteCall<Expression>;
+pub type Match = common::Match<ast::pattern::Pattern, Expression>;
+pub type Tuple = common::Tuple<Expression>;
+pub type Cons = common::Cons<Expression>;
+pub type Binary = common::Binary<Expression>;
+pub type UnaryOp = common::UnaryOp<Expression>;
+pub type BinaryOp = common::BinaryOp<Expression>;
+pub type Record = common::Record<Expression>;
+pub type RecordIndex = common::RecordIndex<Expression>;
+pub type Map = common::Map<Expression>;
+pub type InternalFun = common::InternalFun;
+pub type ExternalFun = common::ExternalFun;
 
 #[derive(Debug)]
 pub enum Expression {

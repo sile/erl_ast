@@ -1,14 +1,14 @@
 //! Types
 //!
 //! See: [6.7 Types](http://erlang.org/doc/apps/erts/absform.html#id88630)
-use ast;
 use ast::LineNum;
 use ast::literal;
+use ast::common;
 
-pub type Var = ast::Variable;
-pub type UnaryOp = ast::UnaryOp<Type>;
-pub type BinaryOp = ast::BinaryOp<Type>;
-pub type Nil = ast::Nil;
+pub type Var = common::Variable;
+pub type UnaryOp = common::UnaryOp<Type>;
+pub type BinaryOp = common::BinaryOp<Type>;
+pub type Nil = common::Nil;
 
 // 6.7 Types
 #[derive(Debug)]

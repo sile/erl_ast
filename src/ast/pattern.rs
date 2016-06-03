@@ -1,20 +1,20 @@
 //! Patterns
 //!
 //! See: [6.3 Patterns](http://erlang.org/doc/apps/erts/absform.html#id87135)
-use ast;
 use ast::literal;
+use ast::common;
 
-pub type Var = ast::Variable;
-pub type Nil = ast::Nil;
-pub type Match = ast::Match<Pattern, Pattern>;
-pub type Tuple = ast::Tuple<Pattern>;
-pub type Cons = ast::Cons<Pattern>;
-pub type Binary = ast::Binary<Pattern>;
-pub type UnaryOp = ast::UnaryOp<Pattern>;
-pub type BinaryOp = ast::BinaryOp<Pattern>;
-pub type Record = ast::Record<Pattern>;
-pub type RecordIndex = ast::RecordIndex<Pattern>;
-pub type Map = ast::Map<Pattern>;
+pub type Var = common::Variable;
+pub type Nil = common::Nil;
+pub type Match = common::Match<Pattern, Pattern>;
+pub type Tuple = common::Tuple<Pattern>;
+pub type Cons = common::Cons<Pattern>;
+pub type Binary = common::Binary<Pattern>;
+pub type UnaryOp = common::UnaryOp<Pattern>;
+pub type BinaryOp = common::BinaryOp<Pattern>;
+pub type Record = common::Record<Pattern>;
+pub type RecordIndex = common::RecordIndex<Pattern>;
+pub type Map = common::Map<Pattern>;
 
 #[derive(Debug)]
 pub enum Pattern {

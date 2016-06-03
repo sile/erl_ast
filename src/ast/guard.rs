@@ -1,21 +1,21 @@
 //! Guards
 //!
 //! See: [6.6 Guards](http://erlang.org/doc/apps/erts/absform.html#id88356)
-use ast;
 use ast::literal;
+use ast::common;
 
-pub type Var = ast::Variable;
-pub type Nil = ast::Nil;
-pub type Tuple = ast::Tuple<Guard>;
-pub type Cons = ast::Cons<Guard>;
-pub type Binary = ast::Binary<Guard>;
-pub type UnaryOp = ast::UnaryOp<Guard>;
-pub type BinaryOp = ast::BinaryOp<Guard>;
-pub type Record = ast::Record<Guard>;
-pub type RecordIndex = ast::RecordIndex<Guard>;
-pub type Map = ast::Map<Guard>;
-pub type LocalCall = ast::LocalCall<Guard>;
-pub type RemoteCall = ast::RemoteCall<Guard>;
+pub type Var = common::Variable;
+pub type Nil = common::Nil;
+pub type Tuple = common::Tuple<Guard>;
+pub type Cons = common::Cons<Guard>;
+pub type Binary = common::Binary<Guard>;
+pub type UnaryOp = common::UnaryOp<Guard>;
+pub type BinaryOp = common::BinaryOp<Guard>;
+pub type Record = common::Record<Guard>;
+pub type RecordIndex = common::RecordIndex<Guard>;
+pub type Map = common::Map<Guard>;
+pub type LocalCall = common::LocalCall<Guard>;
+pub type RemoteCall = common::RemoteCall<Guard>;
 
 #[derive(Debug)]
 pub struct OrGuard {
