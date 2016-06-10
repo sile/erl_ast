@@ -641,7 +641,7 @@ impl<'a> FromTerm<'a> for form::RecordFieldDecl {
 impl<'a> FromTerm<'a> for literal::Atom {
     fn try_from(term: &'a eetf::Term) -> Result<Self, Unmatch<'a>> {
         term.as_match(("atom", I32, atom()))
-            .map(|(_, line, name)| Self::new(line, name.to_string()))
+            .map(|(_, line, name)| Self::new(line, name.name.to_string()))
     }
 }
 impl<'a> FromTerm<'a> for literal::Integer {
