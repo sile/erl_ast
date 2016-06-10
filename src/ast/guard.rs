@@ -18,7 +18,7 @@ pub type RemoteCall = common::RemoteCall<Guard>;
 
 #[derive(Debug,Clone)]
 pub struct OrGuard {
-    and_guards: Vec<Guard>,
+    pub and_guards: Vec<Guard>,
 }
 impl OrGuard {
     pub fn new(and_guards: Vec<Guard>) -> Self {
