@@ -1,6 +1,6 @@
 [package]
 name = "erl_ast"
-version = "0.0.4"
+version = "0.0.5"
 authors = ["Takeru Ohta <phjgt308@gmail.com>"]
 description = "A Rust representation of Abstract Syntax Trees of Erlang modules"
 documentation = "http://sile.github.io/rustdocs/erl_ast/erl_ast/"
