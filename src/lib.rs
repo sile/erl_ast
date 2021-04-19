@@ -41,9 +41,22 @@ impl AST {
 #[cfg(test)]
 mod tests {
     use super::*;
+    // To run the tests
+    // cargo test --package erl_ast --lib -- tests --nocapture
 
     #[test]
-    fn it_works() {
+    fn it_works_for_new_beam() {
+        let ast = AST::from_beam_file("src/testdata/test2.beam")
+            .map_err(|err| {
+                println!("[ERROR] {}", err);
+                "Failed"
+            })
+            .unwrap();
+        assert_eq!(format!("{:?}", ast), "AST { module: ModuleDecl { forms: [File(FileAttr { line: 1, original_file: \"test2.erl\", original_line: 1 }), Module(ModuleAttr { line: 1, name: \"test2\" }), Eof(Eof { line: 2 })] } }");
+    }
+
+    #[test]
+    fn it_works_for_old_beam() {
         AST::from_beam_file("src/testdata/test.beam")
             .map_err(|err| {
                 println!("[ERROR] {}", err);
