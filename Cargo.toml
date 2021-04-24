@@ -15,5 +15,6 @@ coveralls = {repository = "sile/erl_ast"}
 
 [dependencies]
 beam_file = "0.2.4"
-eetf = "0.4.0"
-num = "0.2.1"
+eetf = "0.5"
+num = "0.4"
+thiserror = "1"
