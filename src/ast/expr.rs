@@ -2,9 +2,9 @@
 //!
 //! See: [6.4 Expressions](http://erlang.org/doc/apps/erts/absform.html#id87350)
 use ast;
-use ast::literal;
 use ast::clause;
 use ast::common;
+use ast::literal;
 use ast::pat;
 
 pub type LocalCall = common::LocalCall<Expression>;
@@ -19,7 +19,7 @@ pub type Record = common::Record<Expression>;
 pub type RecordIndex = common::RecordIndex<Expression>;
 pub type Map = common::Map<Expression>;
 
-#[derive(Debug,Clone)]
+#[derive(Debug, Clone)]
 pub enum Expression {
     Integer(Box<literal::Integer>),
     Float(Box<literal::Float>),
@@ -118,7 +118,7 @@ impl Expression {
     }
 }
 
-#[derive(Debug,Clone)]
+#[derive(Debug, Clone)]
 pub struct Catch {
     pub line: ast::LineNum,
     pub expr: Expression,
@@ -126,14 +126,11 @@ pub struct Catch {
 impl_node!(Catch);
 impl Catch {
     pub fn new(line: ast::LineNum, expr: Expression) -> Self {
-        Catch {
-            line: line,
-            expr: expr,
-        }
+        Catch { line, expr }
     }
 }
 
-#[derive(Debug,Clone)]
+#[derive(Debug, Clone)]
 pub struct If {
     pub line: ast::LineNum,
     pub clauses: Vec<clause::Clause>,
@@ -141,14 +138,11 @@ pub struct If {
 impl_node!(If);
 impl If {
     pub fn new(line: ast::LineNum, clauses: Vec<clause::Clause>) -> Self {
-        If {
-            line: line,
-            clauses: clauses,
-        }
+        If { line, clauses }
     }
 }
 
-#[derive(Debug,Clone)]
+#[derive(Debug, Clone)]
 pub struct Case {
     pub line: ast::LineNum,
     pub expr: Expression,
@@ -158,14 +152,14 @@ impl_node!(Case);
 impl Case {
     pub fn new(line: ast::LineNum, expr: Expression, clauses: Vec<clause::Clause>) -> Self {
         Case {
-            line: line,
-            expr: expr,
-            clauses: clauses,
+            line,
+            expr,
+            clauses,
         }
     }
 }
 
-#[derive(Debug,Clone)]
+#[derive(Debug, Clone)]
 pub struct Try {
     pub line: ast::LineNum,
     pub body: Vec<Expression>,
@@ -175,23 +169,24 @@ pub struct Try {
 }
 impl_node!(Try);
 impl Try {
-    pub fn new(line: ast::LineNum,
-               body: Vec<Expression>,
-               case_clauses: Vec<clause::Clause>,
-               catch_clauses: Vec<clause::Clause>,
-               after: Vec<Expression>)
-               -> Self {
+    pub fn new(
+        line: ast::LineNum,
+        body: Vec<Expression>,
+        case_clauses: Vec<clause::Clause>,
+        catch_clauses: Vec<clause::Clause>,
+        after: Vec<Expression>,
+    ) -> Self {
         Try {
-            line: line,
-            body: body,
-            case_clauses: case_clauses,
-            catch_clauses: catch_clauses,
-            after: after,
+            line,
+            body,
+            case_clauses,
+            catch_clauses,
+            after,
         }
     }
 }
 
-#[derive(Debug,Clone)]
+#[derive(Debug, Clone)]
 pub struct Receive {
     pub line: ast::LineNum,
     pub clauses: Vec<clause::Clause>,
@@ -202,8 +197,8 @@ impl_node!(Receive);
 impl Receive {
     pub fn new(line: ast::LineNum, clauses: Vec<clause::Clause>) -> Self {
         Receive {
-            line: line,
-            clauses: clauses,
+            line,
+            clauses,
             timeout: None,
             after: Vec::new(),
         }
@@ -218,7 +213,7 @@ impl Receive {
     }
 }
 
-#[derive(Debug,Clone)]
+#[derive(Debug, Clone)]
 pub struct Block {
     pub line: ast::LineNum,
     pub body: Vec<Expression>,
@@ -226,14 +221,11 @@ pub struct Block {
 impl_node!(Block);
 impl Block {
     pub fn new(line: ast::LineNum, body: Vec<Expression>) -> Self {
-        Block {
-            line: line,
-            body: body,
-        }
+        Block { line, body }
     }
 }
 
-#[derive(Debug,Clone)]
+#[derive(Debug, Clone)]
 pub struct Comprehension {
     pub line: ast::LineNum,
     pub is_list: bool,
@@ -242,28 +234,29 @@ pub struct Comprehension {
 }
 impl_node!(Comprehension);
 impl Comprehension {
-    pub fn new(line: ast::LineNum,
-               is_list: bool,
-               expr: Expression,
-               qualifiers: Vec<Qualifier>)
-               -> Self {
+    pub fn new(
+        line: ast::LineNum,
+        is_list: bool,
+        expr: Expression,
+        qualifiers: Vec<Qualifier>,
+    ) -> Self {
         Comprehension {
-            line: line,
-            is_list: is_list,
-            expr: expr,
-            qualifiers: qualifiers,
+            line,
+            is_list,
+            expr,
+            qualifiers,
         }
     }
 }
 
-#[derive(Debug,Clone)]
+#[derive(Debug, Clone)]
 pub enum Qualifier {
     Generator(Generator),
     BitStringGenerator(Generator),
     Filter(Expression),
 }
 
-#[derive(Debug,Clone)]
+#[derive(Debug, Clone)]
 pub struct Generator {
     pub line: ast::LineNum,
     pub pattern: pat::Pattern,
@@ -273,14 +266,14 @@ impl_node!(Generator);
 impl Generator {
     pub fn new(line: ast::LineNum, pattern: pat::Pattern, expr: Expression) -> Self {
         Generator {
-            line: line,
-            pattern: pattern,
-            expr: expr,
+            line,
+            pattern,
+            expr,
         }
     }
 }
 
-#[derive(Debug,Clone)]
+#[derive(Debug, Clone)]
 pub struct AnonymousFun {
     pub line: ast::LineNum,
     pub name: Option<String>,
@@ -290,9 +283,9 @@ impl_node!(AnonymousFun);
 impl AnonymousFun {
     pub fn new(line: ast::LineNum, clauses: Vec<clause::Clause>) -> Self {
         AnonymousFun {
-            line: line,
+            line,
             name: None,
-            clauses: clauses,
+            clauses,
         }
     }
     pub fn name(mut self, name: String) -> Self {

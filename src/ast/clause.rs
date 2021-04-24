@@ -2,11 +2,11 @@
 //!
 //! See: [6.5 Clauses](http://erlang.org/doc/apps/erts/absform.html#id88135)
 use ast;
-use ast::pat;
-use ast::guard;
 use ast::expr;
+use ast::guard;
+use ast::pat;
 
-#[derive(Debug,Clone)]
+#[derive(Debug, Clone)]
 pub struct Clause {
     pub line: ast::LineNum,
     pub patterns: Vec<pat::Pattern>,
@@ -15,16 +15,17 @@ pub struct Clause {
 }
 impl_node!(Clause);
 impl Clause {
-    pub fn new(line: ast::LineNum,
-               patterns: Vec<pat::Pattern>,
-               guards: Vec<guard::OrGuard>,
-               body: Vec<expr::Expression>)
-               -> Self {
+    pub fn new(
+        line: ast::LineNum,
+        patterns: Vec<pat::Pattern>,
+        guards: Vec<guard::OrGuard>,
+        body: Vec<expr::Expression>,
+    ) -> Self {
         Clause {
-            line: line,
-            patterns: patterns,
-            guards: guards,
-            body: body,
+            line,
+            patterns,
+            guards,
+            body,
         }
     }
 }

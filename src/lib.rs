@@ -18,23 +18,26 @@ extern crate eetf;
 extern crate num;
 
 pub mod ast;
-pub mod result;
 pub mod error;
 pub mod format;
+pub mod result;
 
 use std::path::Path;
 
 /// Abstract Syntax Tree
 #[derive(Debug)]
+#[allow(clippy::upper_case_acronyms)]
 pub struct AST {
     pub module: ast::ModuleDecl,
 }
 impl AST {
     /// Builds AST from the BEAM file
     pub fn from_beam_file<P: AsRef<Path>>(beam_file: P) -> result::FromBeamResult<Self> {
-        let code = try!(format::raw_abstract_v1::AbstractCode::from_beam_file(beam_file));
-        let forms = try!(code.to_forms());
-        Ok(AST { module: ast::ModuleDecl { forms: forms } })
+        let code = format::raw_abstract_v1::AbstractCode::from_beam_file(beam_file)?;
+        let forms = code.to_forms()?;
+        Ok(AST {
+            module: ast::ModuleDecl { forms },
+        })
     }
 }
 

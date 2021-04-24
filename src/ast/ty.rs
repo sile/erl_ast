@@ -2,13 +2,13 @@
 //!
 //! See: [6.7 Types](http://erlang.org/doc/apps/erts/absform.html#id88630)
 use ast;
-use ast::literal;
 use ast::common;
+use ast::literal;
 
 pub type UnaryOp = common::UnaryOp<Type>;
 pub type BinaryOp = common::BinaryOp<Type>;
 
-#[derive(Debug,Clone)]
+#[derive(Debug, Clone)]
 pub enum Type {
     Atom(Box<literal::Atom>),
     Integer(Box<literal::Integer>),
@@ -64,7 +64,7 @@ impl ast::Node for Type {
             Type::Function(ref x) => x.line(),
             Type::Range(ref x) => x.line(),
             Type::Map(ref x) => x.line(),
-            Type::BuiltIn(ref x) => x.line(),                        
+            Type::BuiltIn(ref x) => x.line(),
             Type::Record(ref x) => x.line(),
             Type::Remote(ref x) => x.line(),
             Type::AnyTuple(ref x) => x.line(),
@@ -76,11 +76,15 @@ impl ast::Node for Type {
 }
 impl Type {
     pub fn any(line: ast::LineNum) -> Self {
-        Type::BuiltIn(Box::new(BuiltInType::new(line, "any".to_string(), Vec::new())))
+        Type::BuiltIn(Box::new(BuiltInType::new(
+            line,
+            "any".to_string(),
+            Vec::new(),
+        )))
     }
 }
 
-#[derive(Debug,Clone)]
+#[derive(Debug, Clone)]
 pub struct UserType {
     pub line: ast::LineNum,
     pub name: String,
@@ -89,15 +93,11 @@ pub struct UserType {
 impl_node!(UserType);
 impl UserType {
     pub fn new(line: ast::LineNum, name: String, args: Vec<Type>) -> Self {
-        UserType {
-            line: line,
-            name: name,
-            args: args,
-        }
+        UserType { line, name, args }
     }
 }
 
-#[derive(Debug,Clone)]
+#[derive(Debug, Clone)]
 pub struct Union {
     pub line: ast::LineNum,
     pub types: Vec<Type>,
@@ -105,25 +105,22 @@ pub struct Union {
 impl_node!(Union);
 impl Union {
     pub fn new(line: ast::LineNum, types: Vec<Type>) -> Self {
-        Union {
-            line: line,
-            types: types,
-        }
+        Union { line, types }
     }
 }
 
-#[derive(Debug,Clone)]
+#[derive(Debug, Clone)]
 pub struct AnyTuple {
     pub line: ast::LineNum,
 }
 impl_node!(AnyTuple);
 impl AnyTuple {
     pub fn new(line: ast::LineNum) -> Self {
-        AnyTuple { line: line }
+        AnyTuple { line }
     }
 }
 
-#[derive(Debug,Clone)]
+#[derive(Debug, Clone)]
 pub struct Tuple {
     pub line: ast::LineNum,
     pub elements: Vec<Type>,
@@ -131,14 +128,11 @@ pub struct Tuple {
 impl_node!(Tuple);
 impl Tuple {
     pub fn new(line: ast::LineNum, elements: Vec<Type>) -> Self {
-        Tuple {
-            line: line,
-            elements: elements,
-        }
+        Tuple { line, elements }
     }
 }
 
-#[derive(Debug,Clone)]
+#[derive(Debug, Clone)]
 pub struct RemoteType {
     pub line: ast::LineNum,
     pub module: String,
@@ -149,15 +143,15 @@ impl_node!(RemoteType);
 impl RemoteType {
     pub fn new(line: ast::LineNum, module: String, function: String, args: Vec<Type>) -> Self {
         RemoteType {
-            line: line,
-            module: module,
-            function: function,
-            args: args,
+            line,
+            module,
+            function,
+            args,
         }
     }
 }
 
-#[derive(Debug,Clone)]
+#[derive(Debug, Clone)]
 pub struct Record {
     pub line: ast::LineNum,
     pub name: String,
@@ -166,15 +160,11 @@ pub struct Record {
 impl_node!(Record);
 impl Record {
     pub fn new(line: ast::LineNum, name: String, fields: Vec<RecordField>) -> Self {
-        Record {
-            line: line,
-            name: name,
-            fields: fields,
-        }
+        Record { line, name, fields }
     }
 }
 
-#[derive(Debug,Clone)]
+#[derive(Debug, Clone)]
 pub struct RecordField {
     pub line: ast::LineNum,
     pub name: String,
@@ -183,15 +173,11 @@ pub struct RecordField {
 impl_node!(RecordField);
 impl RecordField {
     pub fn new(line: ast::LineNum, name: String, ty: Type) -> Self {
-        RecordField {
-            line: line,
-            name: name,
-            ty: ty,
-        }
+        RecordField { line, name, ty }
     }
 }
 
-#[derive(Debug,Clone)]
+#[derive(Debug, Clone)]
 pub struct BuiltInType {
     pub line: ast::LineNum,
     pub name: String,
@@ -200,15 +186,11 @@ pub struct BuiltInType {
 impl_node!(BuiltInType);
 impl BuiltInType {
     pub fn new(line: ast::LineNum, name: String, args: Vec<Type>) -> Self {
-        BuiltInType {
-            line: line,
-            name: name,
-            args: args,
-        }
+        BuiltInType { line, name, args }
     }
 }
 
-#[derive(Debug,Clone)]
+#[derive(Debug, Clone)]
 pub struct Map {
     pub line: ast::LineNum,
     pub pairs: Vec<MapPair>,
@@ -216,14 +198,11 @@ pub struct Map {
 impl_node!(Map);
 impl Map {
     pub fn new(line: ast::LineNum, pairs: Vec<MapPair>) -> Self {
-        Map {
-            line: line,
-            pairs: pairs,
-        }
+        Map { line, pairs }
     }
 }
 
-#[derive(Debug,Clone)]
+#[derive(Debug, Clone)]
 pub struct MapPair {
     pub line: ast::LineNum,
     pub key: Type,
@@ -232,15 +211,11 @@ pub struct MapPair {
 impl_node!(MapPair);
 impl MapPair {
     pub fn new(line: ast::LineNum, key: Type, value: Type) -> Self {
-        MapPair {
-            line: line,
-            key: key,
-            value: value,
-        }
+        MapPair { line, key, value }
     }
 }
 
-#[derive(Debug,Clone)]
+#[derive(Debug, Clone)]
 pub struct Annotated {
     pub line: ast::LineNum,
     pub name: common::Var,
@@ -249,15 +224,11 @@ pub struct Annotated {
 impl_node!(Annotated);
 impl Annotated {
     pub fn new(line: ast::LineNum, name: common::Var, ty: Type) -> Self {
-        Annotated {
-            line: line,
-            name: name,
-            ty: ty,
-        }
+        Annotated { line, name, ty }
     }
 }
 
-#[derive(Debug,Clone)]
+#[derive(Debug, Clone)]
 pub struct BitString {
     pub line: ast::LineNum,
     pub bytes: u64,
@@ -267,14 +238,14 @@ impl_node!(BitString);
 impl BitString {
     pub fn new(line: ast::LineNum, bytes: u64, tail_bits: u64) -> Self {
         BitString {
-            line: line,
-            bytes: bytes,
-            tail_bits: tail_bits,
+            line,
+            bytes,
+            tail_bits,
         }
     }
 }
 
-#[derive(Debug,Clone)]
+#[derive(Debug, Clone)]
 pub struct AnyFun {
     pub line: ast::LineNum,
     pub return_type: Option<Type>,
@@ -283,7 +254,7 @@ impl_node!(AnyFun);
 impl AnyFun {
     pub fn new(line: ast::LineNum) -> Self {
         AnyFun {
-            line: line,
+            line,
             return_type: None,
         }
     }
@@ -293,7 +264,7 @@ impl AnyFun {
     }
 }
 
-#[derive(Debug,Clone)]
+#[derive(Debug, Clone)]
 pub struct Fun {
     pub line: ast::LineNum,
     pub args: Vec<Type>,
@@ -304,9 +275,9 @@ impl_node!(Fun);
 impl Fun {
     pub fn new(line: ast::LineNum, args: Vec<Type>, return_type: Type) -> Self {
         Fun {
-            line: line,
-            args: args,
-            return_type: return_type,
+            line,
+            args,
+            return_type,
             constraints: Vec::new(),
         }
     }
@@ -316,7 +287,7 @@ impl Fun {
     }
 }
 
-#[derive(Debug,Clone)]
+#[derive(Debug, Clone)]
 pub struct Constraint {
     pub line: ast::LineNum,
     pub var: common::Var,
@@ -325,15 +296,11 @@ pub struct Constraint {
 impl_node!(Constraint);
 impl Constraint {
     pub fn new(line: ast::LineNum, var: common::Var, subtype: Type) -> Self {
-        Constraint {
-            line: line,
-            var: var,
-            subtype: subtype,
-        }
+        Constraint { line, var, subtype }
     }
 }
 
-#[derive(Debug,Clone)]
+#[derive(Debug, Clone)]
 pub struct Range {
     pub line: ast::LineNum,
     pub low: Type,
@@ -342,10 +309,6 @@ pub struct Range {
 impl_node!(Range);
 impl Range {
     pub fn new(line: ast::LineNum, low: Type, high: Type) -> Self {
-        Range {
-            line: line,
-            low: low,
-            high: high,
-        }
+        Range { line, low, high }
     }
 }

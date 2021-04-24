@@ -1,30 +1,30 @@
-use std::fmt::Debug;
-use std::marker::PhantomData;
-use std::path::Path;
-use std::io;
+use ast::clause;
+use ast::common;
+use ast::expr;
+use ast::form;
+use ast::guard;
+use ast::literal;
+use ast::pat;
+use ast::ty;
 use beam_file;
 use beam_file::chunk::Chunk;
 use eetf;
-use eetf::pattern::{Pattern, Unmatch};
-use eetf::pattern::{Nil, Cons, VarList, FixList};
+use eetf::pattern::{Ascii, Str, Unicode};
+use eetf::pattern::{Cons, FixList, Nil, VarList};
 use eetf::pattern::{Or, Union2, Union3};
-use eetf::pattern::{I32, U32, U64, F64, Uint};
-use eetf::pattern::{Str, Ascii, Unicode};
-use result::FromBeamResult;
+use eetf::pattern::{Pattern, Unmatch};
+use eetf::pattern::{Uint, F64, I32, U32, U64};
 use error::FromBeamError;
-use ast::form;
-use ast::literal;
-use ast::expr;
-use ast::clause;
-use ast::guard;
-use ast::ty;
-use ast::common;
-use ast::pat;
+use result::FromBeamResult;
+use std::fmt::Debug;
+use std::io;
+use std::marker::PhantomData;
+use std::path::Path;
 
-macro_rules! to{
+macro_rules! to {
     ($to:ty) => {
         To::<$to>(PhantomData)
-    }
+    };
 }
 
 macro_rules! return_if_ok {
@@ -33,7 +33,7 @@ macro_rules! return_if_ok {
             Ok(value) => return Ok(::std::convert::From::from(value)),
             Err(err) => err,
         }
-    }
+    };
 }
 
 pub struct AbstractCode {
@@ -41,35 +41,42 @@ pub struct AbstractCode {
 }
 impl AbstractCode {
     pub fn from_beam_file<P: AsRef<Path>>(path: P) -> FromBeamResult<Self> {
-        let beam = try!(beam_file::RawBeamFile::from_file(path));
-        let chunk = try!(beam.chunks
+        let beam = beam_file::RawBeamFile::from_file(path)?;
+        let chunk = beam
+            .chunks
             .into_iter()
             .find(|c| c.id() == b"Abst" || c.id() == b"Dbgi")
-            .ok_or(FromBeamError::NoDebugInfo));
-        let code = try!(eetf::Term::decode(io::Cursor::new(&chunk.data)));
-        Ok(AbstractCode { code:code })
+            .ok_or(FromBeamError::NoDebugInfo)?;
+        let code = eetf::Term::decode(io::Cursor::new(&chunk.data))?;
+        Ok(AbstractCode { code })
     }
     pub fn to_forms(&self) -> FromBeamResult<Vec<form::Form>> {
-        let forms = self.code
-            .as_match(
-                Or( // "Abst" chunk,
-                    (("raw_abstract_v1",
-                     VarList(to!(form::Form))),
-
-                     // "Dbgi" chunk
-                    ("debug_info_v1", "erl_abstract_code",
-                     (VarList(to!(form::Form)),VarList(any())))
-                )))
+        let forms = self
+            .code
+            .as_match(Or(
+                // "Abst" chunk,
+                (
+                    ("raw_abstract_v1", VarList(to!(form::Form))),
+                    // "Dbgi" chunk
+                    (
+                        "debug_info_v1",
+                        "erl_abstract_code",
+                        (VarList(to!(form::Form)), VarList(any())),
+                    ),
+                ),
+            ))
             .map(|result| match result {
-                Union2::A((_, forms)) => { forms }
-                Union2::B((_, _, (forms, _copts))) => { forms}
+                Union2::A((_, forms)) => forms,
+                Union2::B((_, _, (forms, _copts))) => forms,
             })?;
         Ok(forms)
     }
 }
 
 trait FromTerm<'a> {
-    fn try_from(term: &'a eetf::Term) -> Result<Self, Unmatch<'a>> where Self: Sized;
+    fn try_from(term: &'a eetf::Term) -> Result<Self, Unmatch<'a>>
+    where
+        Self: Sized;
 }
 
 #[derive(Debug)]
@@ -80,7 +87,8 @@ impl<T> Clone for To<T> {
     }
 }
 impl<'a, F> Pattern<'a> for To<F>
-    where F: FromTerm<'a> + Debug + 'static
+where
+    F: FromTerm<'a> + Debug + 'static,
 {
     type Output = F;
     fn try_match(&self, term: &'a eetf::Term) -> eetf::pattern::Result<'a, Self::Output> {
@@ -98,7 +106,7 @@ impl<'a> Pattern<'a> for AtomName {
     type Output = String;
     fn try_match(&self, term: &'a eetf::Term) -> eetf::pattern::Result<'a, Self::Output> {
         use eetf::convert::TryAsRef;
-        let a: &eetf::Atom = try!(term.try_as_ref().ok_or_else(|| self.unmatched(term)));
+        let a: &eetf::Atom = term.try_as_ref().ok_or_else(|| self.unmatched(term))?;
         Ok(a.name.to_string())
     }
 }
@@ -258,14 +266,16 @@ impl<'a> FromTerm<'a> for expr::Catch {
 }
 impl<'a> FromTerm<'a> for expr::Receive {
     fn try_from(term: &'a eetf::Term) -> Result<Self, Unmatch<'a>> {
-        term.as_match(Or((("receive", I32, VarList(clause())),
-                          ("receive", I32, VarList(clause()), expr(), VarList(expr())))))
-            .map(|result| match result {
-                Union2::A((_, line, clauses)) => Self::new(line, clauses),
-                Union2::B((_, line, clauses, timeout, after)) => {
-                    Self::new(line, clauses).timeout(timeout).after(after)
-                }
-            })
+        term.as_match(Or((
+            ("receive", I32, VarList(clause())),
+            ("receive", I32, VarList(clause()), expr(), VarList(expr())),
+        )))
+        .map(|result| match result {
+            Union2::A((_, line, clauses)) => Self::new(line, clauses),
+            Union2::B((_, line, clauses, timeout, after)) => {
+                Self::new(line, clauses).timeout(timeout).after(after)
+            }
+        })
     }
 }
 impl<'a> FromTerm<'a> for common::InternalFun {
@@ -282,12 +292,14 @@ impl<'a> FromTerm<'a> for common::ExternalFun {
 }
 impl<'a> FromTerm<'a> for expr::AnonymousFun {
     fn try_from(term: &'a eetf::Term) -> Result<Self, Unmatch<'a>> {
-        term.as_match(Or((("fun", I32, ("clauses", VarList(clause()))),
-                          ("named_fun", I32, atom(), VarList(clause())))))
-            .map(|result| match result {
-                Union2::A((_, line, (_, clauses))) => Self::new(line, clauses),
-                Union2::B((_, line, name, clauses)) => Self::new(line, clauses).name(name),
-            })
+        term.as_match(Or((
+            ("fun", I32, ("clauses", VarList(clause()))),
+            ("named_fun", I32, atom(), VarList(clause())),
+        )))
+        .map(|result| match result {
+            Union2::A((_, line, (_, clauses))) => Self::new(line, clauses),
+            Union2::B((_, line, name, clauses)) => Self::new(line, clauses).name(name),
+        })
     }
 }
 impl<'a> FromTerm<'a> for expr::Block {
@@ -310,15 +322,17 @@ impl<'a> FromTerm<'a> for expr::Case {
 }
 impl<'a> FromTerm<'a> for expr::Try {
     fn try_from(term: &'a eetf::Term) -> Result<Self, Unmatch<'a>> {
-        term.as_match(("try",
-                       I32,
-                       VarList(expr()),
-                       VarList(clause()),
-                       VarList(clause()),
-                       VarList(expr())))
-            .map(|(_, line, body, case_clauses, catch_clauses, after)| {
-                Self::new(line, body, case_clauses, catch_clauses, after)
-            })
+        term.as_match((
+            "try",
+            I32,
+            VarList(expr()),
+            VarList(clause()),
+            VarList(clause()),
+            VarList(expr()),
+        ))
+        .map(|(_, line, body, case_clauses, catch_clauses, after)| {
+            Self::new(line, body, case_clauses, catch_clauses, after)
+        })
     }
 }
 impl<'a> FromTerm<'a> for expr::Comprehension {
@@ -330,33 +344,37 @@ impl<'a> FromTerm<'a> for expr::Comprehension {
 impl<'a> FromTerm<'a> for expr::Qualifier {
     fn try_from(term: &'a eetf::Term) -> Result<Self, Unmatch<'a>> {
         use ast::expr::Qualifier::*;
-        term.as_match(Or((("generate", I32, pat(), expr()),
-                          ("b_generate", I32, pat(), expr()),
-                          expr())))
-            .map(|result| match result {
-                Union3::A((_, line, pattern, expr)) => {
-                    Generator(expr::Generator::new(line, pattern, expr))
-                }
-                Union3::B((_, line, pattern, expr)) => {
-                    BitStringGenerator(expr::Generator::new(line, pattern, expr))
-                }
-                Union3::C(expr) => Filter(expr),
-            })
+        term.as_match(Or((
+            ("generate", I32, pat(), expr()),
+            ("b_generate", I32, pat(), expr()),
+            expr(),
+        )))
+        .map(|result| match result {
+            Union3::A((_, line, pattern, expr)) => {
+                Generator(expr::Generator::new(line, pattern, expr))
+            }
+            Union3::B((_, line, pattern, expr)) => {
+                BitStringGenerator(expr::Generator::new(line, pattern, expr))
+            }
+            Union3::C(expr) => Filter(expr),
+        })
     }
 }
 impl<'a> FromTerm<'a> for clause::Clause {
     fn try_from(term: &'a eetf::Term) -> Result<Self, Unmatch<'a>> {
-        term.as_match(("clause",
-                       I32,
-                       VarList(pat()),
-                       VarList(to!(guard::OrGuard)),
-                       VarList(expr())))
-            .map(|(_, line, patterns, guards, body)| Self::new(line, patterns, guards, body))
+        term.as_match((
+            "clause",
+            I32,
+            VarList(pat()),
+            VarList(to!(guard::OrGuard)),
+            VarList(expr()),
+        ))
+        .map(|(_, line, patterns, guards, body)| Self::new(line, patterns, guards, body))
     }
 }
 impl<'a> FromTerm<'a> for guard::OrGuard {
     fn try_from(term: &'a eetf::Term) -> Result<Self, Unmatch<'a>> {
-        term.as_match(VarList(to!(guard::Guard))).map(|guards| Self::new(guards))
+        term.as_match(VarList(to!(guard::Guard))).map(Self::new)
     }
 }
 impl<'a, T: FromTerm<'a> + Debug + 'static> FromTerm<'a> for common::Tuple<T> {
@@ -379,69 +397,87 @@ impl<'a, T: FromTerm<'a> + Debug + 'static> FromTerm<'a> for common::Binary<T> {
 }
 impl<'a, T: FromTerm<'a> + Debug + 'static> FromTerm<'a> for common::BinElement<T> {
     fn try_from(term: &'a eetf::Term) -> Result<Self, Unmatch<'a>> {
-        term.as_match(("bin_element",
-                       I32,
-                       to!(T),
-                       Or((to!(T), "default")),
-                       Or((VarList(to!(common::BinElementTypeSpec)), "default"))))
-            .map(|(_, line, value, size, tsl)| {
-                let mut e = Self::new(line, value);
-                if let Union2::A(size) = size {
-                    e = e.size(size);
-                }
-                if let Union2::A(tsl) = tsl {
-                    e = e.tsl(tsl);
-                }
-                e
-            })
+        term.as_match((
+            "bin_element",
+            I32,
+            to!(T),
+            Or((to!(T), "default")),
+            Or((VarList(to!(common::BinElementTypeSpec)), "default")),
+        ))
+        .map(|(_, line, value, size, tsl)| {
+            let mut e = Self::new(line, value);
+            if let Union2::A(size) = size {
+                e = e.size(size);
+            }
+            if let Union2::A(tsl) = tsl {
+                e = e.tsl(tsl);
+            }
+            e
+        })
     }
 }
 impl<'a> FromTerm<'a> for common::BinElementTypeSpec {
     fn try_from(term: &'a eetf::Term) -> Result<Self, Unmatch<'a>> {
         term.as_match(Or((atom(), (atom(), U64))))
-            .map(|ts| {
-                match ts {
-                    Union2::A(name) => Self::new(name, None),
-                    Union2::B((name, value)) => Self::new(name, Some(value)),
-                }
+            .map(|ts| match ts {
+                Union2::A(name) => Self::new(name, None),
+                Union2::B((name, value)) => Self::new(name, Some(value)),
             })
     }
 }
 impl<'a, T: FromTerm<'a> + Debug + 'static> FromTerm<'a> for common::Record<T> {
     fn try_from(term: &'a eetf::Term) -> Result<Self, Unmatch<'a>> {
-        term.as_match(Or((("record", I32, atom(), VarList(to!(common::RecordField<T>))),
-                          ("record", I32, expr(), atom(), VarList(to!(common::RecordField<T>))))))
-            .map(|result| match result {
-                Union2::A((_, line, name, fields)) => Self::new(line, name, fields),
-                Union2::B((_, line, base, name, fields)) => {
-                    Self::new(line, name, fields).base(base)
-                }
-            })
+        term.as_match(Or((
+            ("record", I32, atom(), VarList(to!(common::RecordField<T>))),
+            (
+                "record",
+                I32,
+                expr(),
+                atom(),
+                VarList(to!(common::RecordField<T>)),
+            ),
+        )))
+        .map(|result| match result {
+            Union2::A((_, line, name, fields)) => Self::new(line, name, fields),
+            Union2::B((_, line, base, name, fields)) => Self::new(line, name, fields).base(base),
+        })
     }
 }
 impl<'a, T: FromTerm<'a> + Debug + 'static> FromTerm<'a> for common::RecordField<T> {
     fn try_from(term: &'a eetf::Term) -> Result<Self, Unmatch<'a>> {
-        term.as_match(("record_field", I32, Or((atom_lit(), ("var", I32, "_"))), to!(T)))
-            .map(|(_, line, name, value)| {
-                let name = name.into_result().ok().map(|n| n.value);
-                Self::new(line, name, value)
-            })
+        term.as_match((
+            "record_field",
+            I32,
+            Or((atom_lit(), ("var", I32, "_"))),
+            to!(T),
+        ))
+        .map(|(_, line, name, value)| {
+            let name = name.into_result().ok().map(|n| n.value);
+            Self::new(line, name, value)
+        })
     }
 }
 impl<'a, T: FromTerm<'a> + Debug + 'static> FromTerm<'a> for common::Map<T> {
     fn try_from(term: &'a eetf::Term) -> Result<Self, Unmatch<'a>> {
-        term.as_match(Or((("map", I32, VarList(to!(common::MapPair<T>))),
-                          ("map", I32, expr(), VarList(to!(common::MapPair<T>))))))
-            .map(|result| match result {
-                Union2::A((_, line, pairs)) => Self::new(line, pairs),
-                Union2::B((_, line, base, pairs)) => Self::new(line, pairs).base(base),
-            })
+        term.as_match(Or((
+            ("map", I32, VarList(to!(common::MapPair<T>))),
+            ("map", I32, expr(), VarList(to!(common::MapPair<T>))),
+        )))
+        .map(|result| match result {
+            Union2::A((_, line, pairs)) => Self::new(line, pairs),
+            Union2::B((_, line, base, pairs)) => Self::new(line, pairs).base(base),
+        })
     }
 }
 impl<'a, T: FromTerm<'a> + Debug + 'static> FromTerm<'a> for common::MapPair<T> {
     fn try_from(term: &'a eetf::Term) -> Result<Self, Unmatch<'a>> {
-        term.as_match((Or(("map_field_assoc", "map_field_exact")), I32, to!(T), to!(T)))
-            .map(|(is_assoc, line, key, value)| Self::new(line, is_assoc.is_a(), key, value))
+        term.as_match((
+            Or(("map_field_assoc", "map_field_exact")),
+            I32,
+            to!(T),
+            to!(T),
+        ))
+        .map(|(is_assoc, line, key, value)| Self::new(line, is_assoc.is_a(), key, value))
     }
 }
 impl<'a, T: FromTerm<'a> + Debug + 'static> FromTerm<'a> for common::LocalCall<T> {
@@ -452,22 +488,27 @@ impl<'a, T: FromTerm<'a> + Debug + 'static> FromTerm<'a> for common::LocalCall<T
 }
 impl<'a, T: FromTerm<'a> + Debug + 'static> FromTerm<'a> for common::RemoteCall<T> {
     fn try_from(term: &'a eetf::Term) -> Result<Self, Unmatch<'a>> {
-        term.as_match(("call", I32, ("remote", U32, to!(T), to!(T)), VarList(to!(T))))
-            .map(|(_, line, (_, _, module, function), args)| {
-                Self::new(line, module, function, args)
-            })
+        term.as_match((
+            "call",
+            I32,
+            ("remote", U32, to!(T), to!(T)),
+            VarList(to!(T)),
+        ))
+        .map(|(_, line, (_, _, module, function), args)| Self::new(line, module, function, args))
     }
 }
 impl<'a, T: FromTerm<'a> + Debug + 'static> FromTerm<'a> for common::RecordIndex<T> {
     fn try_from(term: &'a eetf::Term) -> Result<Self, Unmatch<'a>> {
-        term.as_match(Or((("record_index", I32, atom(), atom_lit()),
-                          ("record_field", I32, to!(T), atom(), atom_lit()))))
-            .map(|result| match result {
-                Union2::A((_, line, name, field)) => Self::new(line, name, field.value),
-                Union2::B((_, line, base, name, field)) => {
-                    Self::new(line, name, field.value).base(base)
-                }
-            })
+        term.as_match(Or((
+            ("record_index", I32, atom(), atom_lit()),
+            ("record_field", I32, to!(T), atom(), atom_lit()),
+        )))
+        .map(|result| match result {
+            Union2::A((_, line, name, field)) => Self::new(line, name, field.value),
+            Union2::B((_, line, base, name, field)) => {
+                Self::new(line, name, field.value).base(base)
+            }
+        })
     }
 }
 impl<'a, T: FromTerm<'a> + Debug + 'static> FromTerm<'a> for common::BinaryOp<T> {
@@ -488,8 +529,9 @@ impl<'a> FromTerm<'a> for common::Nil {
     }
 }
 impl<'a, L, R> FromTerm<'a> for common::Match<L, R>
-    where L: FromTerm<'a> + Debug + 'static,
-          R: FromTerm<'a> + Debug + 'static
+where
+    L: FromTerm<'a> + Debug + 'static,
+    R: FromTerm<'a> + Debug + 'static,
 {
     fn try_from(term: &'a eetf::Term) -> Result<Self, Unmatch<'a>> {
         term.as_match(("match", I32, to!(L), to!(R)))
@@ -522,16 +564,25 @@ impl<'a> FromTerm<'a> for ty::AnyTuple {
 }
 impl<'a> FromTerm<'a> for ty::RemoteType {
     fn try_from(term: &'a eetf::Term) -> Result<Self, Unmatch<'a>> {
-        term.as_match(("remote_type", I32, FixList((atom_lit(), atom_lit(), VarList(ty())))))
-            .map(|(_, line, (module, function, args))| {
-                Self::new(line, module.value, function.value, args)
-            })
+        term.as_match((
+            "remote_type",
+            I32,
+            FixList((atom_lit(), atom_lit(), VarList(ty()))),
+        ))
+        .map(|(_, line, (module, function, args))| {
+            Self::new(line, module.value, function.value, args)
+        })
     }
 }
 impl<'a> FromTerm<'a> for ty::Record {
     fn try_from(term: &'a eetf::Term) -> Result<Self, Unmatch<'a>> {
-        term.as_match(("type", I32, "record", Cons(atom_lit(), to!(ty::RecordField))))
-            .map(|(_, line, _, (name, fields))| Self::new(line, name.value, fields))
+        term.as_match((
+            "type",
+            I32,
+            "record",
+            Cons(atom_lit(), to!(ty::RecordField)),
+        ))
+        .map(|(_, line, _, (name, fields))| Self::new(line, name.value, fields))
     }
 }
 impl<'a> FromTerm<'a> for ty::RecordField {
@@ -543,11 +594,9 @@ impl<'a> FromTerm<'a> for ty::RecordField {
 impl<'a> FromTerm<'a> for ty::BuiltInType {
     fn try_from(term: &'a eetf::Term) -> Result<Self, Unmatch<'a>> {
         term.as_match(("type", I32, atom(), Or(("any", VarList(ty())))))
-            .map(|(_, line, name, args)| {
-                match args {
-                    Union2::A(_) => Self::new(line, name, Vec::new()),
-                    Union2::B(args) => Self::new(line, name, args),
-                }
+            .map(|(_, line, name, args)| match args {
+                Union2::A(_) => Self::new(line, name, Vec::new()),
+                Union2::B(args) => Self::new(line, name, args),
             })
     }
 }
@@ -571,38 +620,51 @@ impl<'a> FromTerm<'a> for ty::Range {
 }
 impl<'a> FromTerm<'a> for ty::Fun {
     fn try_from(term: &'a eetf::Term) -> Result<Self, Unmatch<'a>> {
-        term.as_match(Or((("type",
-                           I32,
-                           "bounded_fun",
-                           FixList((ftype(), VarList(to!(ty::Constraint))))),
-                          ("type",
-                           I32,
-                           "fun",
-                           FixList((("type", I32, "product", VarList(ty())), ty()))))))
-            .map(|result| match result {
-                Union2::A((_, _, _, (fun, constraints))) => fun.constraints(constraints),
-                Union2::B((_, line, _, ((_, _, _, args), return_type))) => {
-                    Self::new(line, args, return_type)
-                }
-            })
+        term.as_match(Or((
+            (
+                "type",
+                I32,
+                "bounded_fun",
+                FixList((ftype(), VarList(to!(ty::Constraint)))),
+            ),
+            (
+                "type",
+                I32,
+                "fun",
+                FixList((("type", I32, "product", VarList(ty())), ty())),
+            ),
+        )))
+        .map(|result| match result {
+            Union2::A((_, _, _, (fun, constraints))) => fun.constraints(constraints),
+            Union2::B((_, line, _, ((_, _, _, args), return_type))) => {
+                Self::new(line, args, return_type)
+            }
+        })
     }
 }
 impl<'a> FromTerm<'a> for ty::Constraint {
     fn try_from(term: &'a eetf::Term) -> Result<Self, Unmatch<'a>> {
-        term.as_match(("type",
-                       I32,
-                       "constraint",
-                       FixList((("atom", I32, "is_subtype"), FixList((var(), ty()))))))
-            .map(|(_, line, _, (_, (var, subtype)))| Self::new(line, var, subtype))
+        term.as_match((
+            "type",
+            I32,
+            "constraint",
+            FixList((("atom", I32, "is_subtype"), FixList((var(), ty())))),
+        ))
+        .map(|(_, line, _, (_, (var, subtype)))| Self::new(line, var, subtype))
     }
 }
 impl<'a> FromTerm<'a> for ty::AnyFun {
     fn try_from(term: &'a eetf::Term) -> Result<Self, Unmatch<'a>> {
-        term.as_match(("type", I32, "fun", Or((Nil, FixList((("type", I32, "any"), ty()))))))
-            .map(|(_, line, _, fun)| match fun {
-                Union2::A(_) => Self::new(line),
-                Union2::B((_, ty)) => Self::new(line).return_type(ty),
-            })
+        term.as_match((
+            "type",
+            I32,
+            "fun",
+            Or((Nil, FixList((("type", I32, "any"), ty())))),
+        ))
+        .map(|(_, line, _, fun)| match fun {
+            Union2::A(_) => Self::new(line),
+            Union2::B((_, ty)) => Self::new(line).return_type(ty),
+        })
     }
 }
 impl<'a> FromTerm<'a> for ty::Annotated {
@@ -613,10 +675,15 @@ impl<'a> FromTerm<'a> for ty::Annotated {
 }
 impl<'a> FromTerm<'a> for ty::BitString {
     fn try_from(term: &'a eetf::Term) -> Result<Self, Unmatch<'a>> {
-        term.as_match(("type", I32, "binary", FixList((integer_lit(), integer_lit()))))
-            .map(|(_, line, _, (bytes, bits))| {
-                Self::new(line, bytes.to_u64().unwrap(), bits.to_u64().unwrap())
-            })
+        term.as_match((
+            "type",
+            I32,
+            "binary",
+            FixList((integer_lit(), integer_lit())),
+        ))
+        .map(|(_, line, _, (bytes, bits))| {
+            Self::new(line, bytes.to_u64().unwrap(), bits.to_u64().unwrap())
+        })
     }
 }
 impl<'a> FromTerm<'a> for form::ModuleAttr {
@@ -641,60 +708,76 @@ impl<'a> FromTerm<'a> for form::BehaviourAttr {
 }
 impl<'a> FromTerm<'a> for form::RecordDecl {
     fn try_from(term: &'a eetf::Term) -> Result<Self, Unmatch<'a>> {
-        term.as_match(("attribute", I32, "record", (atom(), VarList(to!(form::RecordFieldDecl)))))
-            .map(|(_, line, _, (name, fields))| Self::new(line, name, fields))
+        term.as_match((
+            "attribute",
+            I32,
+            "record",
+            (atom(), VarList(to!(form::RecordFieldDecl))),
+        ))
+        .map(|(_, line, _, (name, fields))| Self::new(line, name, fields))
     }
 }
 impl<'a> FromTerm<'a> for form::RecordFieldDecl {
     fn try_from(term: &'a eetf::Term) -> Result<Self, Unmatch<'a>> {
-        term.as_match(Or((("record_field", I32, atom_lit()),
-                          ("record_field", I32, atom_lit(), expr()),
-                          ("typed_record_field", to!(form::RecordFieldDecl), ty()))))
-            .map(|result| match result {
-                Union3::A((_, line, name)) => Self::new(line, name.value),
-                Union3::B((_, line, name, value)) => {
-                    Self::new(line, name.value).default_value(value)
-                }
-                Union3::C((_, field, ty)) => field.typ(ty),
-            })
+        term.as_match(Or((
+            ("record_field", I32, atom_lit()),
+            ("record_field", I32, atom_lit(), expr()),
+            ("typed_record_field", to!(form::RecordFieldDecl), ty()),
+        )))
+        .map(|result| match result {
+            Union3::A((_, line, name)) => Self::new(line, name.value),
+            Union3::B((_, line, name, value)) => Self::new(line, name.value).default_value(value),
+            Union3::C((_, field, ty)) => field.typ(ty),
+        })
     }
 }
 impl<'a> FromTerm<'a> for literal::Atom {
     fn try_from(term: &'a eetf::Term) -> Result<Self, Unmatch<'a>> {
-        term.as_match(("atom", I32, atom())).map(|(_, line, name)| Self::new(line, name))
+        term.as_match(("atom", I32, atom()))
+            .map(|(_, line, name)| Self::new(line, name))
     }
 }
 impl<'a> FromTerm<'a> for literal::Integer {
     fn try_from(term: &'a eetf::Term) -> Result<Self, Unmatch<'a>> {
-        term.as_match(("integer", I32, Uint)).map(|(_, line, value)| Self::new(line, value))
+        term.as_match(("integer", I32, Uint))
+            .map(|(_, line, value)| Self::new(line, value))
     }
 }
 impl<'a> FromTerm<'a> for literal::Char {
     fn try_from(term: &'a eetf::Term) -> Result<Self, Unmatch<'a>> {
-        term.as_match(("char", I32, Unicode)).map(|(_, line, ch)| Self::new(line, ch))
+        term.as_match(("char", I32, Unicode))
+            .map(|(_, line, ch)| Self::new(line, ch))
     }
 }
 impl<'a> FromTerm<'a> for literal::Float {
     fn try_from(term: &'a eetf::Term) -> Result<Self, Unmatch<'a>> {
-        term.as_match(("float", I32, F64)).map(|(_, line, value)| Self::new(line, value))
+        term.as_match(("float", I32, F64))
+            .map(|(_, line, value)| Self::new(line, value))
     }
 }
 impl<'a> FromTerm<'a> for literal::Str {
     fn try_from(term: &'a eetf::Term) -> Result<Self, Unmatch<'a>> {
-        term.as_match(("string", I32, Str(Unicode))).map(|(_, line, value)| Self::new(line, value))
+        term.as_match(("string", I32, Str(Unicode)))
+            .map(|(_, line, value)| Self::new(line, value))
     }
 }
 impl<'a> FromTerm<'a> for common::Var {
     fn try_from(term: &'a eetf::Term) -> Result<Self, Unmatch<'a>> {
-        term.as_match(("var", I32, atom())).map(|(_, line, name)| Self::new(line, name))
+        term.as_match(("var", I32, atom()))
+            .map(|(_, line, name)| Self::new(line, name))
     }
 }
 impl<'a> FromTerm<'a> for form::TypeDecl {
     fn try_from(term: &'a eetf::Term) -> Result<Self, Unmatch<'a>> {
-        term.as_match(("attribute", I32, Or(("opaque", "type")), (atom(), ty(), VarList(var()))))
-            .map(|(_, line, kind, (name, ty, vars))| {
-                Self::new(line, name, vars, ty).opaque(kind.is_a())
-            })
+        term.as_match((
+            "attribute",
+            I32,
+            Or(("opaque", "type")),
+            (atom(), ty(), VarList(var())),
+        ))
+        .map(|(_, line, kind, (name, ty, vars))| {
+            Self::new(line, name, vars, ty).opaque(kind.is_a())
+        })
     }
 }
 impl<'a> FromTerm<'a> for form::FunDecl {
@@ -705,29 +788,41 @@ impl<'a> FromTerm<'a> for form::FunDecl {
 }
 impl<'a> FromTerm<'a> for form::FunSpec {
     fn try_from(term: &'a eetf::Term) -> Result<Self, Unmatch<'a>> {
-        term.as_match(Or((("attribute",
-                           I32,
-                           Or(("callback", "spec")),
-                           ((atom(), U32), VarList(ftype()))),
-                          ("attribute", I32, "spec", ((atom(), atom(), U32), VarList(ftype()))))))
-            .map(|result| match result {
-                Union2::A((_, line, is_callback, ((name, _), types))) => {
-                    Self::new(line, name, types).callback(is_callback.is_a())
-                }
-                Union2::B((_, line, _, ((module, name, _), types))) => {
-                    Self::new(line, name, types).module(module)
-                }
-            })
+        term.as_match(Or((
+            (
+                "attribute",
+                I32,
+                Or(("callback", "spec")),
+                ((atom(), U32), VarList(ftype())),
+            ),
+            (
+                "attribute",
+                I32,
+                "spec",
+                ((atom(), atom(), U32), VarList(ftype())),
+            ),
+        )))
+        .map(|result| match result {
+            Union2::A((_, line, is_callback, ((name, _), types))) => {
+                Self::new(line, name, types).callback(is_callback.is_a())
+            }
+            Union2::B((_, line, _, ((module, name, _), types))) => {
+                Self::new(line, name, types).module(module)
+            }
+        })
     }
 }
 impl<'a> FromTerm<'a> for form::ExportAttr {
     fn try_from(term: &'a eetf::Term) -> Result<Self, Unmatch<'a>> {
         term.as_match(("attribute", I32, "export", VarList((atom(), U32))))
             .map(|(_, line, _, functions)| {
-                Self::new(line,
-                          functions.into_iter()
-                              .map(|(f, a)| form::Export::new(f, a))
-                              .collect())
+                Self::new(
+                    line,
+                    functions
+                        .into_iter()
+                        .map(|(f, a)| form::Export::new(f, a))
+                        .collect(),
+                )
             })
     }
 }
@@ -735,11 +830,14 @@ impl<'a> FromTerm<'a> for form::ImportAttr {
     fn try_from(term: &'a eetf::Term) -> Result<Self, Unmatch<'a>> {
         term.as_match(("attribute", I32, "import", (atom(), VarList((atom(), U32)))))
             .map(|(_, line, _, (module, functions))| {
-                Self::new(line,
-                          module,
-                          functions.into_iter()
-                              .map(|(f, a)| form::Import::new(f, a))
-                              .collect())
+                Self::new(
+                    line,
+                    module,
+                    functions
+                        .into_iter()
+                        .map(|(f, a)| form::Import::new(f, a))
+                        .collect(),
+                )
             })
     }
 }
@@ -747,10 +845,13 @@ impl<'a> FromTerm<'a> for form::ExportTypeAttr {
     fn try_from(term: &'a eetf::Term) -> Result<Self, Unmatch<'a>> {
         term.as_match(("attribute", I32, "export_type", VarList((atom(), U32))))
             .map(|(_, line, _, export_types)| {
-                Self::new(line,
-                          export_types.into_iter()
-                              .map(|(t, a)| form::ExportType::new(t, a))
-                              .collect())
+                Self::new(
+                    line,
+                    export_types
+                        .into_iter()
+                        .map(|(t, a)| form::ExportType::new(t, a))
+                        .collect(),
+                )
             })
     }
 }

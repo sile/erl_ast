@@ -1,14 +1,14 @@
 //! Module Declarations and Forms
 //!
 //! See: [6.1 Module Declarations and Forms](http://erlang.org/doc/apps/erts/absform.html#id86691)
-use eetf;
 use ast;
-use ast::ty;
-use ast::expr;
 use ast::clause;
 use ast::common;
+use ast::expr;
+use ast::ty;
+use eetf;
 
-#[derive(Debug,Clone)]
+#[derive(Debug, Clone)]
 pub enum Form {
     Module(ModuleAttr),
     Behaviour(BehaviourAttr),
@@ -57,18 +57,18 @@ impl ast::Node for Form {
     }
 }
 
-#[derive(Debug,Clone)]
+#[derive(Debug, Clone)]
 pub struct Eof {
     pub line: ast::LineNum,
 }
 impl_node!(Eof);
 impl Eof {
     pub fn new(line: ast::LineNum) -> Self {
-        Eof { line: line }
+        Eof { line }
     }
 }
 
-#[derive(Debug,Clone)]
+#[derive(Debug, Clone)]
 pub struct ModuleAttr {
     pub line: ast::LineNum,
     pub name: String,
@@ -76,14 +76,11 @@ pub struct ModuleAttr {
 impl_node!(ModuleAttr);
 impl ModuleAttr {
     pub fn new(line: ast::LineNum, name: String) -> Self {
-        ModuleAttr {
-            line: line,
-            name: name,
-        }
+        ModuleAttr { line, name }
     }
 }
 
-#[derive(Debug,Clone)]
+#[derive(Debug, Clone)]
 pub struct BehaviourAttr {
     pub line: ast::LineNum,
     pub is_british: bool,
@@ -93,8 +90,8 @@ impl_node!(BehaviourAttr);
 impl BehaviourAttr {
     pub fn new(line: ast::LineNum, name: String) -> Self {
         BehaviourAttr {
-            line: line,
-            name: name,
+            line,
+            name,
             is_british: true,
         }
     }
@@ -104,7 +101,7 @@ impl BehaviourAttr {
     }
 }
 
-#[derive(Debug,Clone)]
+#[derive(Debug, Clone)]
 pub struct ExportAttr {
     pub line: ast::LineNum,
     pub funs: Vec<Export>,
@@ -112,14 +109,11 @@ pub struct ExportAttr {
 impl_node!(ExportAttr);
 impl ExportAttr {
     pub fn new(line: ast::LineNum, funs: Vec<Export>) -> Self {
-        ExportAttr {
-            line: line,
-            funs: funs,
-        }
+        ExportAttr { line, funs }
     }
 }
 
-#[derive(Debug,Clone)]
+#[derive(Debug, Clone)]
 pub struct ImportAttr {
     pub line: ast::LineNum,
     pub module: String,
@@ -128,15 +122,11 @@ pub struct ImportAttr {
 impl_node!(ImportAttr);
 impl ImportAttr {
     pub fn new(line: ast::LineNum, module: String, funs: Vec<Import>) -> Self {
-        ImportAttr {
-            line: line,
-            module: module,
-            funs: funs,
-        }
+        ImportAttr { line, module, funs }
     }
 }
 
-#[derive(Debug,Clone)]
+#[derive(Debug, Clone)]
 pub struct ExportTypeAttr {
     pub line: ast::LineNum,
     pub types: Vec<ExportType>,
@@ -144,14 +134,11 @@ pub struct ExportTypeAttr {
 impl_node!(ExportTypeAttr);
 impl ExportTypeAttr {
     pub fn new(line: ast::LineNum, types: Vec<ExportType>) -> Self {
-        ExportTypeAttr {
-            line: line,
-            types: types,
-        }
+        ExportTypeAttr { line, types }
     }
 }
 
-#[derive(Debug,Clone)]
+#[derive(Debug, Clone)]
 pub struct CompileOptionsAttr {
     pub line: ast::LineNum,
     pub options: eetf::Term,
@@ -159,14 +146,11 @@ pub struct CompileOptionsAttr {
 impl_node!(CompileOptionsAttr);
 impl CompileOptionsAttr {
     pub fn new(line: ast::LineNum, options: eetf::Term) -> Self {
-        CompileOptionsAttr {
-            line: line,
-            options: options,
-        }
+        CompileOptionsAttr { line, options }
     }
 }
 
-#[derive(Debug,Clone)]
+#[derive(Debug, Clone)]
 pub struct FileAttr {
     pub line: ast::LineNum,
     pub original_file: String,
@@ -176,14 +160,14 @@ impl_node!(FileAttr);
 impl FileAttr {
     pub fn new(line: ast::LineNum, original_file: String, original_line: ast::LineNum) -> Self {
         FileAttr {
-            line: line,
-            original_file: original_file,
-            original_line: original_line,
+            line,
+            original_file,
+            original_line,
         }
     }
 }
 
-#[derive(Debug,Clone)]
+#[derive(Debug, Clone)]
 pub struct RecordDecl {
     pub line: ast::LineNum,
     pub name: String,
@@ -192,15 +176,11 @@ pub struct RecordDecl {
 impl_node!(RecordDecl);
 impl RecordDecl {
     pub fn new(line: ast::LineNum, name: String, fields: Vec<RecordFieldDecl>) -> Self {
-        RecordDecl {
-            line: line,
-            name: name,
-            fields: fields,
-        }
+        RecordDecl { line, name, fields }
     }
 }
 
-#[derive(Debug,Clone)]
+#[derive(Debug, Clone)]
 pub struct TypeDecl {
     pub line: ast::LineNum,
     pub is_opaque: bool,
@@ -212,10 +192,10 @@ impl_node!(TypeDecl);
 impl TypeDecl {
     pub fn new(line: ast::LineNum, name: String, vars: Vec<common::Var>, ty: ty::Type) -> Self {
         TypeDecl {
-            line: line,
-            name: name,
-            vars: vars,
-            ty: ty,
+            line,
+            name,
+            vars,
+            ty,
             is_opaque: false,
         }
     }
@@ -225,7 +205,7 @@ impl TypeDecl {
     }
 }
 
-#[derive(Debug,Clone)]
+#[derive(Debug, Clone)]
 pub struct FunSpec {
     pub line: ast::LineNum,
     pub module: Option<String>,
@@ -237,10 +217,10 @@ impl_node!(FunSpec);
 impl FunSpec {
     pub fn new(line: ast::LineNum, name: String, types: Vec<ty::Fun>) -> Self {
         FunSpec {
-            line: line,
+            line,
             module: None,
-            name: name,
-            types: types,
+            name,
+            types,
             is_callback: false,
         }
     }
@@ -254,7 +234,7 @@ impl FunSpec {
     }
 }
 
-#[derive(Debug,Clone)]
+#[derive(Debug, Clone)]
 pub struct WildAttr {
     pub line: ast::LineNum,
     pub name: String,
@@ -263,15 +243,11 @@ pub struct WildAttr {
 impl_node!(WildAttr);
 impl WildAttr {
     pub fn new(line: ast::LineNum, name: String, value: eetf::Term) -> Self {
-        WildAttr {
-            line: line,
-            name: name,
-            value: value,
-        }
+        WildAttr { line, name, value }
     }
 }
 
-#[derive(Debug,Clone)]
+#[derive(Debug, Clone)]
 pub struct FunDecl {
     pub line: ast::LineNum,
     pub name: String,
@@ -281,14 +257,14 @@ impl_node!(FunDecl);
 impl FunDecl {
     pub fn new(line: ast::LineNum, name: String, clauses: Vec<clause::Clause>) -> Self {
         FunDecl {
-            line: line,
-            name: name,
-            clauses: clauses,
+            line,
+            name,
+            clauses,
         }
     }
 }
 
-#[derive(Debug,Clone)]
+#[derive(Debug, Clone)]
 pub struct RecordFieldDecl {
     pub line: ast::LineNum,
     pub name: String,
@@ -299,8 +275,8 @@ impl_node!(RecordFieldDecl);
 impl RecordFieldDecl {
     pub fn new(line: ast::LineNum, name: String) -> Self {
         RecordFieldDecl {
-            line: line,
-            name: name,
+            line,
+            name,
             ty: ty::Type::any(line),
             default_value: expr::Expression::atom(line, "undefined".to_string()),
         }
@@ -315,44 +291,35 @@ impl RecordFieldDecl {
     }
 }
 
-#[derive(Debug,Clone)]
+#[derive(Debug, Clone)]
 pub struct Export {
     pub fun: String,
     pub arity: ast::Arity,
 }
 impl Export {
     pub fn new(fun: String, arity: ast::Arity) -> Self {
-        Export {
-            fun: fun,
-            arity: arity,
-        }
+        Export { fun, arity }
     }
 }
 
-#[derive(Debug,Clone)]
+#[derive(Debug, Clone)]
 pub struct Import {
     pub fun: String,
     pub arity: ast::Arity,
 }
 impl Import {
     pub fn new(fun: String, arity: ast::Arity) -> Self {
-        Import {
-            fun: fun,
-            arity: arity,
-        }
+        Import { fun, arity }
     }
 }
 
-#[derive(Debug,Clone)]
+#[derive(Debug, Clone)]
 pub struct ExportType {
     pub typ: String,
     pub arity: ast::Arity,
 }
 impl ExportType {
     pub fn new(typ: String, arity: ast::Arity) -> Self {
-        ExportType {
-            typ: typ,
-            arity: arity,
-        }
+        ExportType { typ, arity }
     }
 }

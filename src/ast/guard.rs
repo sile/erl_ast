@@ -2,8 +2,8 @@
 //!
 //! See: [6.6 Guards](http://erlang.org/doc/apps/erts/absform.html#id88356)
 use ast;
-use ast::literal;
 use ast::common;
+use ast::literal;
 
 pub type Tuple = common::Tuple<Guard>;
 pub type Cons = common::Cons<Guard>;
@@ -16,17 +16,17 @@ pub type Map = common::Map<Guard>;
 pub type LocalCall = common::LocalCall<Guard>;
 pub type RemoteCall = common::RemoteCall<Guard>;
 
-#[derive(Debug,Clone)]
+#[derive(Debug, Clone)]
 pub struct OrGuard {
     pub and_guards: Vec<Guard>,
 }
 impl OrGuard {
     pub fn new(and_guards: Vec<Guard>) -> Self {
-        OrGuard { and_guards: and_guards }
+        OrGuard { and_guards }
     }
 }
 
-#[derive(Debug,Clone)]
+#[derive(Debug, Clone)]
 pub enum Guard {
     Integer(Box<literal::Integer>),
     Float(Box<literal::Float>),

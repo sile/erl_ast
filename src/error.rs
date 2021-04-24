@@ -25,7 +25,6 @@ pub enum FromBeamError {
 }
 impl<'a> convert::From<eetf::pattern::Unmatch<'a>> for FromBeamError {
     fn from(x: eetf::pattern::Unmatch<'a>) -> Self {
-        use std::ops::Deref;
         let mut trace = Vec::new();
         let mut curr = Some(&x);
         while let Some(x) = curr {
@@ -33,7 +32,7 @@ impl<'a> convert::From<eetf::pattern::Unmatch<'a>> for FromBeamError {
                 value: x.input.clone(),
                 pattern: format!("{:?}", x.pattern),
             });
-            curr = x.cause.as_ref().map(|x| x.deref());
+            curr = x.cause.as_deref();
         }
         trace.reverse();
         FromBeamError::UnexpectedTerm(trace)
