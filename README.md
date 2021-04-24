@@ -2,7 +2,8 @@ erl_ast
 =======
 
 [![](http://meritbadge.herokuapp.com/erl_ast)](https://crates.io/crates/erl_ast)
-[![Build Status](https://travis-ci.org/sile/erl_ast.svg?branch=master)](https://travis-ci.org/sile/erl_ast)
+[![Actions Status](https://github.com/sile/erl_ast/workflows/CI/badge.svg)](https://github.com/sile/erl_ast/actions)
+[![Coverage Status](https://coveralls.io/repos/github/sile/erl_ast/badge.svg?branch=master)](https://coveralls.io/github/sile/erl_ast?branch=master)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
 A Rust library for working with Abstract Syntax Trees of Erlang programs

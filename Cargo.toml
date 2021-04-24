@@ -10,6 +10,9 @@ readme = "README.md"
 keywords = ["erlang"]
 license = "MIT"
 
+[badges]
+coveralls = {repository = "sile/erl_ast"}
+
 [dependencies]
 beam_file = "0.2.4"
 eetf = "0.4.0"
