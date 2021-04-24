@@ -44,14 +44,26 @@ impl AbstractCode {
         let beam = try!(beam_file::RawBeamFile::from_file(path));
         let chunk = try!(beam.chunks
             .into_iter()
-            .find(|c| c.id() == b"Abst")
+            .find(|c| c.id() == b"Abst" || c.id() == b"Dbgi")
             .ok_or(FromBeamError::NoDebugInfo));
         let code = try!(eetf::Term::decode(io::Cursor::new(&chunk.data)));
-        Ok(AbstractCode { code: code })
+        Ok(AbstractCode { code:code })
     }
     pub fn to_forms(&self) -> FromBeamResult<Vec<form::Form>> {
-        let (_, forms) = try!(self.code
-            .as_match(("raw_abstract_v1", VarList(to!(form::Form)))));
+        let forms = self.code
+            .as_match(
+                Or( // "Abst" chunk,
+                    (("raw_abstract_v1",
+                     VarList(to!(form::Form))),
+
+                     // "Dbgi" chunk
+                    ("debug_info_v1", "erl_abstract_code",
+                     (VarList(to!(form::Form)),VarList(any())))
+                )))
+            .map(|result| match result {
+                Union2::A((_, forms)) => { forms }
+                Union2::B((_, _, (forms, _copts))) => { forms}
+            })?;
         Ok(forms)
     }
 }
