@@ -2,8 +2,8 @@
 //!
 //! See: [6.3 Patterns](http://erlang.org/doc/apps/erts/absform.html#id87135)
 use ast;
-use ast::literal;
 use ast::common;
+use ast::literal;
 
 pub type Match = common::Match<Pattern, Pattern>;
 pub type Tuple = common::Tuple<Pattern>;
@@ -15,7 +15,7 @@ pub type Record = common::Record<Pattern>;
 pub type RecordIndex = common::RecordIndex<Pattern>;
 pub type Map = common::Map<Pattern>;
 
-#[derive(Debug,Clone)]
+#[derive(Debug, Clone)]
 pub enum Pattern {
     Integer(Box<literal::Integer>),
     Float(Box<literal::Float>),
