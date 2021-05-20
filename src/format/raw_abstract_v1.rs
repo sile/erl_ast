@@ -230,6 +230,7 @@ impl<'a> FromTerm<'a> for guard::Guard {
         let e = return_if_ok!(term.as_match(to!(common::Record<_>))).max_depth(e);
         let e = return_if_ok!(term.as_match(to!(common::RecordIndex<_>))).max_depth(e);
         let e = return_if_ok!(term.as_match(to!(common::LocalCall<_>))).max_depth(e);
+        let e = return_if_ok!(term.as_match(to!(common::Map<_>))).max_depth(e);
         let e = return_if_ok!(term.as_match(to!(common::RemoteCall<_>))).max_depth(e);
         Err(e)
     }
