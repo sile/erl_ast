@@ -43,6 +43,7 @@ pub enum Guard {
     Record(Box<Record>),
     RecordIndex(Box<RecordIndex>),
     LocalCall(Box<LocalCall>),
+    Map(Box<Map>),
     RemoteCall(Box<RemoteCall>),
 }
 impl_from!(Guard::Integer(literal::Integer));
@@ -60,6 +61,7 @@ impl_from!(Guard::BinaryOp(BinaryOp));
 impl_from!(Guard::Record(Record));
 impl_from!(Guard::RecordIndex(RecordIndex));
 impl_from!(Guard::LocalCall(LocalCall));
+impl_from!(Guard::Map(Map));
 impl_from!(Guard::RemoteCall(RemoteCall));
 impl ast::Node for Guard {
     fn line(&self) -> ast::LineNum {
@@ -79,6 +81,7 @@ impl ast::Node for Guard {
             Guard::Record(ref x) => x.line(),
             Guard::RecordIndex(ref x) => x.line(),
             Guard::LocalCall(ref x) => x.line(),
+            Guard::Map(ref x) => x.line(),
             Guard::RemoteCall(ref x) => x.line(),
         }
     }
