@@ -526,7 +526,11 @@ impl<'a, T: FromTerm<'a> + Debug + 'static> FromTerm<'a> for common::UnaryOp<T> 
 }
 impl<'a> FromTerm<'a> for common::Nil {
     fn try_from(term: &'a eetf::Term) -> Result<Self, Unmatch<'a>> {
-        term.as_match(("nil", I32)).map(|(_, line)| Self::new(line))
+        term.as_match(Or((("nil", I32), ("type", I32, "nil", Nil))))
+            .map(|result| match result {
+                Union2::A((_, line)) => Self::new(line),
+                Union2::B((_, line, _, _)) => Self::new(line),
+            })
     }
 }
 impl<'a, L, R> FromTerm<'a> for common::Match<L, R>
