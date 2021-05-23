@@ -205,13 +205,19 @@ impl Map {
 #[derive(Debug, Clone)]
 pub struct MapPair {
     pub line: ast::LineNum,
+    pub is_assoc: bool,
     pub key: Type,
     pub value: Type,
 }
 impl_node!(MapPair);
 impl MapPair {
-    pub fn new(line: ast::LineNum, key: Type, value: Type) -> Self {
-        MapPair { line, key, value }
+    pub fn new(line: ast::LineNum, is_assoc: bool, key: Type, value: Type) -> Self {
+        MapPair {
+            line,
+            is_assoc,
+            key,
+            value,
+        }
     }
 }
 

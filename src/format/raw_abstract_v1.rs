@@ -609,8 +609,14 @@ impl<'a> FromTerm<'a> for ty::Map {
 }
 impl<'a> FromTerm<'a> for ty::MapPair {
     fn try_from(term: &'a eetf::Term) -> Result<Self, Unmatch<'a>> {
-        term.as_match(("type", I32, "map_field_assoc", FixList((ty(), ty()))))
-            .map(|(_, line, _, (key, value))| Self::new(line, key, value))
+        term.as_match(Or((
+            ("type", I32, "map_field_exact", FixList((ty(), ty()))),
+            ("type", I32, "map_field_assoc", FixList((ty(), ty()))),
+        )))
+        .map(|result| match result {
+            Union2::A((_, line, _, (key, value))) => Self::new(line, false, key, value),
+            Union2::B((_, line, _, (key, value))) => Self::new(line, true, key, value),
+        })
     }
 }
 impl<'a> FromTerm<'a> for ty::Range {
