@@ -1,3 +1,4 @@
+#![allow(clippy::result_large_err)]
 //! A Rust representation of Abstract Syntax Trees of Erlang modules.
 //!
 //! Currently the library provide only a functionality that
